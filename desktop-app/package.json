@@ -1,0 +1,31 @@
+{
+  "name": "local-studio",
+  "version": "0.1.0",
+  "main": "src/main/index.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "webpack --mode development --watch",
+    "build": "webpack --mode production"
+  },
+  "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
+    "electron": "^28.3.3",
+    "monaco-editor": "^0.55.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.28.6",
+    "@babel/preset-react": "^7.28.5",
+    "@types/node": "^25.0.10",
+    "@types/react": "^19.2.9",
+    "babel-loader": "^10.0.0",
+    "copy-webpack-plugin": "^13.0.1",
+    "css-loader": "^7.1.2",
+    "html-webpack-plugin": "^5.6.6",
+    "monaco-editor-webpack-plugin": "^7.1.1",
+    "style-loader": "^4.0.0",
+    "webpack": "^5.104.1",
+    "webpack-cli": "^6.0.1"
+  }
+}
