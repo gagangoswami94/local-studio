@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:; worker-src 'self' blob:; child-src 'self' blob:; connect-src 'self'">
   <title>Local Studio</title>
+  <script>
+    // Polyfill for packages that expect Node.js globals in browser context
+    window.global = window;
+    window.process = window.process || { env: {} };
+  </script>
   <style>
     * {
       margin: 0;

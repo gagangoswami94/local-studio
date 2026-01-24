@@ -146,6 +146,111 @@ body {
   flex-direction: column;
 }
 
+/* Editor Tabs */
+.editor-tabs-container {
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.editor-tabs {
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+.editor-tabs::-webkit-scrollbar {
+  height: 3px;
+}
+
+.editor-tabs::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 2px;
+}
+
+.editor-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background-color: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: background-color 0.15s ease;
+  min-width: 120px;
+  max-width: 200px;
+}
+
+.editor-tab:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.editor-tab.active {
+  background-color: var(--bg-primary);
+  border-bottom: 2px solid var(--accent-blue);
+}
+
+.editor-tab .tab-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.editor-tab .tab-name {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.editor-tab.modified .tab-name {
+  font-style: italic;
+}
+
+.editor-tab .tab-modified {
+  font-size: 18px;
+  color: var(--accent-blue);
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.editor-tab .tab-close {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 3px;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: all 0.15s ease;
+}
+
+.editor-tab:hover .tab-close {
+  opacity: 1;
+}
+
+.editor-tab .tab-close:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.editor-wrapper {
+  flex: 1;
+  overflow: hidden;
+}
+
 .right-panel {
   width: 400px;
   background-color: var(--bg-secondary);
@@ -165,6 +270,74 @@ body {
 .bottom-panel.collapsed {
   height: 0;
   overflow: hidden;
+}
+
+/* Status Bar */
+.status-bar {
+  height: 22px;
+  background-color: var(--accent-blue);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  font-size: 12px;
+  color: white;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.status-bar-left,
+.status-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  transition: background-color 0.15s ease;
+}
+
+.status-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  cursor: default;
+}
+
+.status-separator {
+  opacity: 0.5;
+  font-weight: 300;
+}
+
+.status-error {
+  background-color: rgba(255, 68, 68, 0.3);
+  color: #ff4444;
+  animation: pulse 1.5s infinite;
+}
+
+.status-saving {
+  background-color: rgba(255, 255, 255, 0.15);
+  animation: pulse 1s infinite;
+}
+
+.status-modified {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.status-saved {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 /* Scrollbar styling */

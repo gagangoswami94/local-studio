@@ -1,8 +1,17 @@
 import React, { useState } from 'react';
 import FileTree from './FileTree';
+import WorkspaceSelector from './WorkspaceSelector';
+import useWorkspaceStore from '../store/workspaceStore';
 
-const Sidebar = ({ files, onFileSelect, selectedFile }) => {
+const Sidebar = () => {
   const [activeTab, setActiveTab] = useState('explorer');
+  const { files, activeFile, openFile } = useWorkspaceStore();
+
+  const handleFileSelect = async (file) => {
+    if (file.type === 'file') {
+      await openFile(file.path, file.name);
+    }
+  };
 
   return (
     <div className="sidebar">
@@ -22,26 +31,17 @@ const Sidebar = ({ files, onFileSelect, selectedFile }) => {
         </button>
       </div>
 
-      {/* Toolbar */}
-      {activeTab === 'explorer' && (
-        <div className="sidebar-toolbar">
-          <button className="toolbar-btn" disabled title="New File">
-            📄
-          </button>
-          <button className="toolbar-btn" disabled title="New Folder">
-            📁
-          </button>
-        </div>
-      )}
-
       {/* Content */}
       <div className="sidebar-content">
         {activeTab === 'explorer' && (
-          <FileTree
-            files={files}
-            onFileSelect={onFileSelect}
-            selectedFile={selectedFile}
-          />
+          <>
+            <WorkspaceSelector />
+            <FileTree
+              files={files}
+              onFileSelect={handleFileSelect}
+              selectedFile={activeFile}
+            />
+          </>
         )}
         {activeTab === 'search' && (
           <div style={{ padding: '16px', fontSize: '12px', opacity: 0.5 }}>

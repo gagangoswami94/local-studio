@@ -1,5 +1,6 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
+const { registerIpcHandlers, unregisterIpcHandlers } = require('./ipc');
 
 // Suppress security warnings in development
 // Monaco Editor requires 'unsafe-eval' for web workers, which triggers warnings
@@ -13,8 +14,9 @@ function createWindow() {
     width: 1400,
     height: 900,
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, 'preload.js'),
       devTools: true
     }
   });
@@ -38,10 +40,14 @@ function createWindow() {
 app.whenReady().then(() => {
   createWindow();
 
+  // Register IPC handlers after window is created
+  registerIpcHandlers(mainWindow);
+
   // On macOS, re-create window when dock icon is clicked
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
+      registerIpcHandlers(mainWindow);
     }
   });
 });
@@ -51,6 +57,11 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+// Cleanup when app is quitting
+app.on('will-quit', () => {
+  unregisterIpcHandlers();
 });
 
 // Handle any uncaught exceptions

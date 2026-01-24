@@ -1,4 +1,5 @@
 const path = require('path');
+const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
@@ -10,6 +11,7 @@ module.exports = {
     path: path.resolve(__dirname, 'dist'),
     filename: 'renderer.js',
     publicPath: './',
+    globalObject: 'this',
     clean: true
   },
   module: {
@@ -35,9 +37,16 @@ module.exports = {
     ]
   },
   resolve: {
-    extensions: ['.js', '.jsx', '.json']
+    extensions: ['.js', '.jsx', '.json'],
+    fallback: {
+      path: false,
+      fs: false
+    }
   },
   plugins: [
+    new webpack.DefinePlugin({
+      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development')
+    }),
     new HtmlWebpackPlugin({
       template: './src/renderer/index.html',
       filename: 'index.html'
