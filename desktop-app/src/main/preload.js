@@ -24,6 +24,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
   workspace: {
     showOpenDialog: () => ipcRenderer.invoke('workspace:showOpenDialog'),
     open: (path) => ipcRenderer.invoke('workspace:open', path)
+  },
+
+  // Terminal operations
+  terminal: {
+    create: (options) => ipcRenderer.invoke('terminal:create', options),
+    write: (terminalId, data) => ipcRenderer.invoke('terminal:write', terminalId, data),
+    resize: (terminalId, cols, rows) => ipcRenderer.invoke('terminal:resize', terminalId, cols, rows),
+    destroy: (terminalId) => ipcRenderer.invoke('terminal:destroy', terminalId),
+    onData: (callback) => ipcRenderer.on('terminal:data', (event, terminalId, data) => callback(terminalId, data)),
+    onExit: (callback) => ipcRenderer.on('terminal:exit', (event, terminalId, exitCode) => callback(terminalId, exitCode)),
+    removeDataListener: (callback) => ipcRenderer.removeListener('terminal:data', callback),
+    removeExitListener: (callback) => ipcRenderer.removeListener('terminal:exit', callback)
+  },
+
+  // Linter operations
+  linter: {
+    lintFile: (filepath, content) => ipcRenderer.invoke('linter:lintFile', filepath, content)
   }
 });
 

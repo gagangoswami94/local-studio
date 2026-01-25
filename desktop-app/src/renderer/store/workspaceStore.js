@@ -1,5 +1,27 @@
 import { create } from 'zustand';
-import { readDirectory, readFile, writeFile } from '../utils/ipc';
+import { readDirectory, readFile, writeFile, lintFile } from '../utils/ipc';
+import logger from '../utils/logger';
+import useProblemsStore from './problemsStore';
+
+/**
+ * Helper function to trigger linting for a file
+ * @param {string} filePath - Path to the file
+ * @param {string} content - File content
+ */
+async function triggerLinting(filePath, content) {
+  try {
+    const result = await lintFile(filePath, content);
+
+    if (result.success) {
+      const { setProblemsForFile } = useProblemsStore.getState();
+      setProblemsForFile(filePath, result.problems || []);
+    } else {
+      console.error('Linting failed:', result.error);
+    }
+  } catch (error) {
+    console.error('Error triggering linting:', error);
+  }
+}
 
 const useWorkspaceStore = create((set, get) => ({
   // State
@@ -10,10 +32,13 @@ const useWorkspaceStore = create((set, get) => ({
   activeFile: null, // Path of currently active file
   isSaving: false, // true when saving
   saveError: null, // Error message if save fails
+  lintTimers: {}, // Debounce timers for linting
 
   // Actions
   openWorkspace: async (path) => {
     try {
+      logger.info(`Opening workspace: ${path}`, 'System');
+
       // Load directory structure
       const result = await readDirectory(path);
 
@@ -29,13 +54,14 @@ const useWorkspaceStore = create((set, get) => ({
         // Persist to localStorage
         localStorage.setItem('workspacePath', path);
 
+        logger.info(`Workspace opened successfully: ${path}`, 'System');
         return { success: true };
       } else {
-        console.error('Failed to load workspace:', result.error);
+        logger.error(`Failed to load workspace: ${result.error}`, 'System');
         return { success: false, error: result.error };
       }
     } catch (error) {
-      console.error('Error opening workspace:', error);
+      logger.error(`Error opening workspace: ${error.message}`, 'System');
       return { success: false, error: error.message };
     }
   },
@@ -60,6 +86,8 @@ const useWorkspaceStore = create((set, get) => ({
       return { success: true, content: existingFile.content };
     }
 
+    logger.info(`Opening file: ${fileName}`, 'System');
+
     // Load file content
     const result = await readFile(filePath);
 
@@ -76,9 +104,14 @@ const useWorkspaceStore = create((set, get) => ({
         activeFile: filePath
       });
 
+      logger.info(`File opened successfully: ${fileName}`, 'System');
+
+      // Trigger linting for the opened file
+      triggerLinting(filePath, result.data);
+
       return { success: true, content: result.data };
     } else {
-      console.error('Failed to open file:', result.error);
+      logger.error(`Failed to open file ${fileName}: ${result.error}`, 'System');
       return { success: false, error: result.error };
     }
   },
@@ -93,7 +126,7 @@ const useWorkspaceStore = create((set, get) => ({
   },
 
   closeFile: (filePath) => {
-    const { openFiles, activeFile } = get();
+    const { openFiles, activeFile, lintTimers } = get();
     const newOpenFiles = openFiles.filter(f => f.path !== filePath);
 
     let newActiveFile = activeFile;
@@ -102,14 +135,23 @@ const useWorkspaceStore = create((set, get) => ({
       newActiveFile = newOpenFiles.length > 0 ? newOpenFiles[newOpenFiles.length - 1].path : null;
     }
 
+    // Clear lint timer for this file
+    if (lintTimers[filePath]) {
+      clearTimeout(lintTimers[filePath]);
+    }
+
+    const newLintTimers = { ...lintTimers };
+    delete newLintTimers[filePath];
+
     set({
       openFiles: newOpenFiles,
-      activeFile: newActiveFile
+      activeFile: newActiveFile,
+      lintTimers: newLintTimers
     });
   },
 
   updateFileContent: (filePath, content) => {
-    const { openFiles } = get();
+    const { openFiles, lintTimers } = get();
     const updatedFiles = openFiles.map(f =>
       f.path === filePath
         ? { ...f, content, isDirty: true }
@@ -117,6 +159,22 @@ const useWorkspaceStore = create((set, get) => ({
     );
 
     set({ openFiles: updatedFiles });
+
+    // Debounced linting (3 seconds after last change)
+    if (lintTimers[filePath]) {
+      clearTimeout(lintTimers[filePath]);
+    }
+
+    const newTimer = setTimeout(() => {
+      triggerLinting(filePath, content);
+    }, 3000);
+
+    set((state) => ({
+      lintTimers: {
+        ...state.lintTimers,
+        [filePath]: newTimer
+      }
+    }));
   },
 
   saveFile: async (filePath) => {
@@ -124,11 +182,14 @@ const useWorkspaceStore = create((set, get) => ({
     const file = openFiles.find(f => f.path === filePath);
 
     if (!file) {
-      set({ saveError: 'File not found in open files' });
-      return { success: false, error: 'File not found in open files' };
+      const errorMsg = 'File not found in open files';
+      logger.error(errorMsg, 'System');
+      set({ saveError: errorMsg });
+      return { success: false, error: errorMsg };
     }
 
     set({ isSaving: true, saveError: null });
+    logger.info(`Saving file: ${file.name}`, 'System');
 
     try {
       const result = await writeFile(filePath, file.content);
@@ -142,14 +203,19 @@ const useWorkspaceStore = create((set, get) => ({
         );
 
         set({ openFiles: updatedFiles, isSaving: false });
+        logger.info(`File saved successfully: ${file.name}`, 'System');
+
+        // Trigger linting after save
+        triggerLinting(filePath, file.content);
+
         return { success: true };
       } else {
-        console.error('Failed to save file:', result.error);
+        logger.error(`Failed to save file ${file.name}: ${result.error}`, 'System');
         set({ isSaving: false, saveError: result.error });
         return { success: false, error: result.error };
       }
     } catch (error) {
-      console.error('Error saving file:', error);
+      logger.error(`Error saving file ${file.name}: ${error.message}`, 'System');
       set({ isSaving: false, saveError: error.message });
       return { success: false, error: error.message };
     }

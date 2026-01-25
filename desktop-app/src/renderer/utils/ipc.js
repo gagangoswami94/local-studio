@@ -115,3 +115,18 @@ export async function pathExists(filepath) {
     return { success: false, error: error.message };
   }
 }
+
+/**
+ * Lint a file's content
+ * @param {string} filepath - Absolute path to file
+ * @param {string} content - File content to lint
+ * @returns {Promise<{success: boolean, problems?: Array, error?: string}>}
+ */
+export async function lintFile(filepath, content) {
+  try {
+    return await window.electronAPI.linter.lintFile(filepath, content);
+  } catch (error) {
+    console.error('IPC lintFile error:', error);
+    return { success: false, error: error.message };
+  }
+}

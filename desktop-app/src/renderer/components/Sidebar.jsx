@@ -14,7 +14,7 @@ const Sidebar = () => {
   };
 
   return (
-    <div className="sidebar">
+    <>
       {/* Tab Bar */}
       <div className="sidebar-tabs">
         <button
@@ -49,7 +49,7 @@ const Sidebar = () => {
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 };
 

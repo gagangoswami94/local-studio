@@ -1,6 +1,8 @@
 const { ipcMain, BrowserWindow } = require('electron');
 const fileSystem = require('./fileSystem');
 const workspace = require('./workspace');
+const terminal = require('./terminal');
+const linter = require('./linter');
 
 /**
  * Register all IPC handlers
@@ -59,6 +61,48 @@ function registerIpcHandlers(mainWindow) {
     return await workspace.openWorkspace(path);
   });
 
+  // Terminal operations
+  ipcMain.handle('terminal:create', async (event, options) => {
+    console.log('IPC: Creating terminal');
+    const result = terminal.createTerminal(options);
+
+    if (result.success) {
+      const terminalInstance = terminal.getTerminal(result.data.id);
+
+      // Listen for terminal data and send to renderer
+      terminalInstance.pty.onData((data) => {
+        mainWindow.webContents.send('terminal:data', result.data.id, data);
+      });
+
+      // Handle terminal exit
+      terminalInstance.pty.onExit(({ exitCode, signal }) => {
+        console.log(`Terminal ${result.data.id} exited with code ${exitCode}`);
+        mainWindow.webContents.send('terminal:exit', result.data.id, exitCode);
+        terminal.destroyTerminal(result.data.id);
+      });
+    }
+
+    return result;
+  });
+
+  ipcMain.handle('terminal:write', async (event, terminalId, data) => {
+    return terminal.writeToTerminal(terminalId, data);
+  });
+
+  ipcMain.handle('terminal:resize', async (event, terminalId, cols, rows) => {
+    return terminal.resizeTerminal(terminalId, cols, rows);
+  });
+
+  ipcMain.handle('terminal:destroy', async (event, terminalId) => {
+    return terminal.destroyTerminal(terminalId);
+  });
+
+  // Linting operations
+  ipcMain.handle('linter:lintFile', async (event, filepath, content) => {
+    console.log('IPC: Linting file:', filepath);
+    return await linter.lintFile(filepath, content);
+  });
+
   console.log('IPC handlers registered');
 }
 
@@ -76,6 +120,14 @@ function unregisterIpcHandlers() {
   ipcMain.removeHandler('fs:pathExists');
   ipcMain.removeHandler('workspace:showOpenDialog');
   ipcMain.removeHandler('workspace:open');
+  ipcMain.removeHandler('terminal:create');
+  ipcMain.removeHandler('terminal:write');
+  ipcMain.removeHandler('terminal:resize');
+  ipcMain.removeHandler('terminal:destroy');
+  ipcMain.removeHandler('linter:lintFile');
+
+  // Cleanup all terminals
+  terminal.cleanupAllTerminals();
 
   console.log('IPC handlers unregistered');
 }
