@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import FileTree from './FileTree';
 import WorkspaceSelector from './WorkspaceSelector';
+import SearchPanel from './SearchPanel';
 import useWorkspaceStore from '../store/workspaceStore';
 
 const Sidebar = () => {
@@ -43,11 +44,7 @@ const Sidebar = () => {
             />
           </>
         )}
-        {activeTab === 'search' && (
-          <div style={{ padding: '16px', fontSize: '12px', opacity: 0.5 }}>
-            Search functionality coming soon...
-          </div>
-        )}
+        {activeTab === 'search' && <SearchPanel />}
       </div>
     </>
   );

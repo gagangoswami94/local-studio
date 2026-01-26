@@ -15,21 +15,6 @@ const TABS = [
 const BottomPanel = () => {
   const { activeBottomTab, setActiveBottomTab, closeBottomPanel } = usePanelStore();
 
-  const renderContent = () => {
-    switch (activeBottomTab) {
-      case 'terminal':
-        return <TerminalPanel />;
-      case 'problems':
-        return <ProblemsPanel />;
-      case 'output':
-        return <OutputPanel />;
-      case 'debug':
-        return <DebugConsolePanel />;
-      default:
-        return <TerminalPanel />;
-    }
-  };
-
   return (
     <>
       {/* Tab Header */}
@@ -57,9 +42,60 @@ const BottomPanel = () => {
         </div>
       </div>
 
-      {/* Tab Content */}
+      {/* Tab Content - Keep all panels mounted, hide inactive ones */}
       <div className="bottom-panel-content">
-        {renderContent()}
+        <div
+          className="tab-panel"
+          style={{
+            visibility: activeBottomTab === 'terminal' ? 'visible' : 'hidden',
+            position: activeBottomTab === 'terminal' ? 'relative' : 'absolute',
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column'
+          }}
+        >
+          <TerminalPanel isVisible={activeBottomTab === 'terminal'} />
+        </div>
+        <div
+          className="tab-panel"
+          style={{
+            visibility: activeBottomTab === 'problems' ? 'visible' : 'hidden',
+            position: activeBottomTab === 'problems' ? 'relative' : 'absolute',
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column'
+          }}
+        >
+          <ProblemsPanel />
+        </div>
+        <div
+          className="tab-panel"
+          style={{
+            visibility: activeBottomTab === 'output' ? 'visible' : 'hidden',
+            position: activeBottomTab === 'output' ? 'relative' : 'absolute',
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column'
+          }}
+        >
+          <OutputPanel />
+        </div>
+        <div
+          className="tab-panel"
+          style={{
+            visibility: activeBottomTab === 'debug' ? 'visible' : 'hidden',
+            position: activeBottomTab === 'debug' ? 'relative' : 'absolute',
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column'
+          }}
+        >
+          <DebugConsolePanel />
+        </div>
       </div>
     </>
   );

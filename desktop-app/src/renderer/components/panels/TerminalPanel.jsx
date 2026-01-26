@@ -2,12 +2,12 @@ import React from 'react';
 import Terminal from '../Terminal';
 import useWorkspaceStore from '../../store/workspaceStore';
 
-const TerminalPanel = () => {
+const TerminalPanel = ({ isVisible = true }) => {
   const { workspacePath } = useWorkspaceStore();
 
   return (
     <div className="panel-content">
-      <Terminal workspacePath={workspacePath} />
+      <Terminal workspacePath={workspacePath} isVisible={isVisible} />
     </div>
   );
 };

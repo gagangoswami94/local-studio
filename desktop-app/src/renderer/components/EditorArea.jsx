@@ -1,6 +1,7 @@
 import React from 'react';
 import Editor from './Editor';
 import EditorTabs from './EditorTabs';
+import SettingsPanel from './SettingsPanel';
 import useWorkspaceStore from '../store/workspaceStore';
 import useKeyboardShortcuts from '../hooks/useKeyboardShortcuts';
 
@@ -84,6 +85,9 @@ const EditorArea = () => {
     'ctrl+w': handleCloseTab
   });
 
+  // Check if we're viewing a special tab (like settings)
+  const isSettingsTab = activeFile === 'settings:';
+
   return (
     <div className="editor-area">
       <EditorTabs
@@ -93,12 +97,16 @@ const EditorArea = () => {
         onTabClose={handleTabClose}
       />
       <div className="editor-wrapper">
-        <Editor
-          value={content}
-          language={language}
-          onChange={handleCodeChange}
-          path={activeFile || 'welcome.js'}
-        />
+        {isSettingsTab ? (
+          <SettingsPanel />
+        ) : (
+          <Editor
+            value={content}
+            language={language}
+            onChange={handleCodeChange}
+            path={activeFile || 'welcome.js'}
+          />
+        )}
       </div>
     </div>
   );

@@ -12,6 +12,7 @@
     "@monaco-editor/react": "^4.7.0",
     "electron": "^28.3.3",
     "eslint": "^9.39.2",
+    "fuse.js": "^7.1.0",
     "monaco-editor": "^0.55.1",
     "node-pty": "^1.1.0",
     "path-browserify": "^1.0.1",

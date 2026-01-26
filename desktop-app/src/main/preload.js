@@ -41,6 +41,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Linter operations
   linter: {
     lintFile: (filepath, content) => ipcRenderer.invoke('linter:lintFile', filepath, content)
+  },
+
+  // Search operations
+  search: {
+    searchFiles: (workspacePath, query, options) => ipcRenderer.invoke('search:searchFiles', workspacePath, query, options)
   }
 });
 

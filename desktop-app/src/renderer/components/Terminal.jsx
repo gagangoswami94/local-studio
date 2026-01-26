@@ -2,8 +2,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Terminal as XTerm } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
+import useSettingsStore from '../store/settingsStore';
 
-const Terminal = ({ workspacePath }) => {
+const Terminal = ({ workspacePath, isVisible = true }) => {
+  const { settings } = useSettingsStore();
   const terminalRef = useRef(null);
   const xtermRef = useRef(null);
   const fitAddonRef = useRef(null);
@@ -43,7 +45,7 @@ const Terminal = ({ workspacePath }) => {
         cols: 80,
         rows: 24,
         cursorBlink: true,
-        fontSize: 14,
+        fontSize: settings['terminal.fontSize'] || 14,
         fontFamily: 'Menlo, Monaco, "Courier New", monospace',
         theme: {
           background: '#1e1e1e',
@@ -286,6 +288,39 @@ const Terminal = ({ workspacePath }) => {
       fitAddonRef.current = null;
     };
   }, [workspacePath]);
+
+  // Handle visibility changes - fit when terminal becomes visible
+  useEffect(() => {
+    if (!isVisible || !isFitReadyRef.current) return;
+
+    // Small delay to ensure layout is ready
+    const timeoutId = setTimeout(() => {
+      if (!fitAddonRef.current || !xtermRef.current) return;
+
+      try {
+        // Fit the terminal to container
+        fitAddonRef.current.fit();
+
+        // Scroll to bottom
+        xtermRef.current.scrollToBottom();
+
+        // Update backend with new size
+        if (terminalIdRef.current) {
+          window.electronAPI.terminal.resize(
+            terminalIdRef.current,
+            xtermRef.current.cols,
+            xtermRef.current.rows
+          );
+        }
+
+        console.log('Terminal resized on visibility change');
+      } catch (err) {
+        console.warn('Failed to resize terminal:', err);
+      }
+    }, 50);
+
+    return () => clearTimeout(timeoutId);
+  }, [isVisible]);
 
   return (
     <div ref={terminalRef} className="terminal-content" />

@@ -1,5 +1,6 @@
 import React from 'react';
 import useWorkspaceStore from '../store/workspaceStore';
+import useSettingsStore from '../store/settingsStore';
 
 const getLanguageDisplayName = (path) => {
   if (!path) return 'Plain Text';
@@ -23,10 +24,19 @@ const getLanguageDisplayName = (path) => {
 
 const StatusBar = ({ cursorPosition }) => {
   const { activeFile, openFiles, isSaving, saveError } = useWorkspaceStore();
+  const { settings, updateSetting } = useSettingsStore();
 
   const activeFileData = openFiles.find(f => f.path === activeFile);
   const hasUnsavedChanges = openFiles.some(f => f.isDirty);
   const language = activeFile ? getLanguageDisplayName(activeFile) : 'Plain Text';
+
+  const currentTheme = settings['workbench.colorTheme'];
+  const isDarkTheme = currentTheme === 'dark';
+
+  const toggleTheme = () => {
+    const newTheme = isDarkTheme ? 'light' : 'dark';
+    updateSetting('workbench.colorTheme', newTheme);
+  };
 
   return (
     <div className="status-bar">
@@ -58,6 +68,17 @@ const StatusBar = ({ cursorPosition }) => {
 
       {/* Right side */}
       <div className="status-bar-right">
+        <div
+          className="status-item status-theme-toggle"
+          onClick={toggleTheme}
+          title={`Switch to ${isDarkTheme ? 'light' : 'dark'} theme`}
+          style={{ cursor: 'pointer' }}
+        >
+          {isDarkTheme ? '☀️' : '🌙'}
+        </div>
+
+        <div className="status-separator">|</div>
+
         {saveError && (
           <div className="status-item status-error" title={saveError}>
             ⚠️ Save Error

@@ -23,11 +23,39 @@ async function triggerLinting(filePath, content) {
   }
 }
 
+/**
+ * Recursively flatten file tree to get all files with metadata
+ * @param {Array} files - File tree array
+ * @param {string} basePath - Base path for relative paths
+ * @returns {Array} Flattened array of file objects with metadata
+ */
+function flattenFileTree(files, basePath = '') {
+  const result = [];
+
+  for (const item of files) {
+    if (item.type === 'file') {
+      result.push({
+        path: item.path,
+        name: item.name,
+        relativePath: basePath ? `${basePath}/${item.name}` : item.name,
+        lastModified: item.lastModified || Date.now()
+      });
+    } else if (item.type === 'directory' && item.children) {
+      const newBasePath = basePath ? `${basePath}/${item.name}` : item.name;
+      result.push(...flattenFileTree(item.children, newBasePath));
+    }
+  }
+
+  return result;
+}
+
 const useWorkspaceStore = create((set, get) => ({
   // State
   currentWorkspace: null,
   workspacePath: localStorage.getItem('workspacePath') || null,
   files: [],
+  allFiles: [], // Flattened array of all files for quick search
+  recentFiles: JSON.parse(localStorage.getItem('recentFiles') || '[]'), // Recently opened files (paths only)
   openFiles: [], // Array of { path, name, content, isDirty }
   activeFile: null, // Path of currently active file
   isSaving: false, // true when saving
@@ -43,10 +71,14 @@ const useWorkspaceStore = create((set, get) => ({
       const result = await readDirectory(path);
 
       if (result.success) {
+        // Flatten file tree for quick search
+        const allFiles = flattenFileTree(result.data);
+
         set({
           currentWorkspace: path,
           workspacePath: path,
           files: result.data,
+          allFiles: allFiles,
           openFiles: [],
           activeFile: null
         });
@@ -55,6 +87,7 @@ const useWorkspaceStore = create((set, get) => ({
         localStorage.setItem('workspacePath', path);
 
         logger.info(`Workspace opened successfully: ${path}`, 'System');
+        logger.info(`Indexed ${allFiles.length} files`, 'System');
         return { success: true };
       } else {
         logger.error(`Failed to load workspace: ${result.error}`, 'System');
@@ -72,17 +105,29 @@ const useWorkspaceStore = create((set, get) => ({
 
     const result = await readDirectory(workspacePath);
     if (result.success) {
-      set({ files: result.data });
+      const allFiles = flattenFileTree(result.data);
+      set({ files: result.data, allFiles: allFiles });
     }
   },
 
   openFile: async (filePath, fileName) => {
-    const { openFiles, activeFile } = get();
+    const { openFiles, activeFile, recentFiles } = get();
 
     // Check if file is already open
     const existingFile = openFiles.find(f => f.path === filePath);
     if (existingFile) {
-      set({ activeFile: filePath });
+      // Update recent files
+      const updatedRecentFiles = [
+        filePath,
+        ...recentFiles.filter(p => p !== filePath)
+      ].slice(0, 20);
+
+      set({
+        activeFile: filePath,
+        recentFiles: updatedRecentFiles
+      });
+
+      localStorage.setItem('recentFiles', JSON.stringify(updatedRecentFiles));
       return { success: true, content: existingFile.content };
     }
 
@@ -99,10 +144,20 @@ const useWorkspaceStore = create((set, get) => ({
         isDirty: false
       };
 
+      // Update recent files - add to front, remove duplicates, limit to 20
+      const updatedRecentFiles = [
+        filePath,
+        ...recentFiles.filter(p => p !== filePath)
+      ].slice(0, 20);
+
       set({
         openFiles: [...openFiles, newFile],
-        activeFile: filePath
+        activeFile: filePath,
+        recentFiles: updatedRecentFiles
       });
+
+      // Persist recent files to localStorage
+      localStorage.setItem('recentFiles', JSON.stringify(updatedRecentFiles));
 
       logger.info(`File opened successfully: ${fileName}`, 'System');
 
@@ -270,6 +325,36 @@ const useWorkspaceStore = create((set, get) => ({
       activeFile: null
     });
     localStorage.removeItem('workspacePath');
+  },
+
+  /**
+   * Open a special tab (like settings)
+   * @param {string} tabId - Special tab ID (e.g., 'settings:')
+   * @param {string} tabName - Display name for the tab
+   */
+  openSpecialTab: (tabId, tabName) => {
+    const { openFiles } = get();
+
+    // Check if tab is already open
+    const existingTab = openFiles.find(f => f.path === tabId);
+    if (existingTab) {
+      set({ activeFile: tabId });
+      return;
+    }
+
+    // Add special tab
+    const newTab = {
+      path: tabId,
+      name: tabName,
+      content: '',
+      isDirty: false,
+      isSpecial: true
+    };
+
+    set({
+      openFiles: [...openFiles, newTab],
+      activeFile: tabId
+    });
   }
 }));
 

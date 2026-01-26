@@ -3,6 +3,7 @@ const fileSystem = require('./fileSystem');
 const workspace = require('./workspace');
 const terminal = require('./terminal');
 const linter = require('./linter');
+const search = require('./search');
 
 /**
  * Register all IPC handlers
@@ -103,6 +104,12 @@ function registerIpcHandlers(mainWindow) {
     return await linter.lintFile(filepath, content);
   });
 
+  // Search operations
+  ipcMain.handle('search:searchFiles', async (event, workspacePath, query, options) => {
+    console.log('IPC: Searching files:', query);
+    return await search.searchFiles(workspacePath, query, options);
+  });
+
   console.log('IPC handlers registered');
 }
 
@@ -125,6 +132,7 @@ function unregisterIpcHandlers() {
   ipcMain.removeHandler('terminal:resize');
   ipcMain.removeHandler('terminal:destroy');
   ipcMain.removeHandler('linter:lintFile');
+  ipcMain.removeHandler('search:searchFiles');
 
   // Cleanup all terminals
   terminal.cleanupAllTerminals();

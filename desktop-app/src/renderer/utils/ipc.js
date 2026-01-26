@@ -130,3 +130,19 @@ export async function lintFile(filepath, content) {
     return { success: false, error: error.message };
   }
 }
+
+/**
+ * Search files in workspace
+ * @param {string} workspacePath - Workspace root path
+ * @param {string} query - Search query
+ * @param {Object} options - Search options
+ * @returns {Promise<{success: boolean, results?: Array, totalMatches?: number, error?: string}>}
+ */
+export async function searchFiles(workspacePath, query, options = {}) {
+  try {
+    return await window.electronAPI.search.searchFiles(workspacePath, query, options);
+  } catch (error) {
+    console.error('IPC searchFiles error:', error);
+    return { success: false, error: error.message };
+  }
+}
