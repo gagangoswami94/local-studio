@@ -1,0 +1,85 @@
+/**
+ * Dark Theme (VS Code Dark+ inspired)
+ */
+
+:root[data-theme="dark"] {
+  /* Background colors */
+  --bg-primary: #1e1e1e;
+  --bg-secondary: #252525;
+  --bg-tertiary: #2d2d2d;
+  --bg-elevated: #313131;
+  --bg-overlay: rgba(0, 0, 0, 0.7);
+
+  /* Text colors */
+  --text-primary: #cccccc;
+  --text-secondary: #999999;
+  --text-disabled: #666666;
+  --text-muted: #888888;
+  --text-inverse: #1e1e1e;
+
+  /* Border colors */
+  --border-color: #3d3d3d;
+  --border-light: #2d2d2d;
+  --border-focus: #0e639c;
+
+  /* Interactive states */
+  --hover-bg: rgba(255, 255, 255, 0.05);
+  --active-bg: rgba(255, 255, 255, 0.1);
+  --selected-bg: rgba(14, 99, 156, 0.2);
+  --focus-outline: #0e639c;
+
+  /* Accent colors */
+  --accent-primary: #0e639c;
+  --accent-primary-hover: #1177bb;
+  --accent-primary-active: #0d5689;
+  --accent-secondary: #4fc3f7;
+
+  /* Legacy aliases for backwards compatibility */
+  --accent-blue: var(--accent-primary);
+
+  /* Status colors */
+  --error: #ff4444;
+  --error-bg: rgba(255, 68, 68, 0.1);
+  --error-border: rgba(255, 68, 68, 0.3);
+
+  --warning: #ffcc00;
+  --warning-bg: rgba(255, 204, 0, 0.1);
+  --warning-border: rgba(255, 204, 0, 0.3);
+
+  --info: #4fc3f7;
+  --info-bg: rgba(79, 195, 247, 0.1);
+  --info-border: rgba(79, 195, 247, 0.3);
+
+  --success: #4caf50;
+  --success-bg: rgba(76, 175, 80, 0.1);
+  --success-border: rgba(76, 175, 80, 0.3);
+
+  /* Git status colors */
+  --git-modified: #FFA500;
+  --git-added: #4CAF50;
+  --git-deleted: #F44336;
+  --git-untracked: #2196F3;
+  --git-renamed: #9C27B0;
+  --git-conflicted: #FF5722;
+
+  /* Syntax highlighting (for code displays) */
+  --syntax-keyword: #569cd6;
+  --syntax-string: #ce9178;
+  --syntax-comment: #6a9955;
+  --syntax-function: #dcdcaa;
+  --syntax-variable: #9cdcfe;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.5);
+
+  /* Monaco editor theme */
+  --monaco-theme: 'vs-dark';
+
+  /* Terminal colors */
+  --terminal-bg: #1e1e1e;
+  --terminal-fg: #cccccc;
+  --terminal-cursor: #ffffff;
+  --terminal-selection: rgba(255, 255, 255, 0.3);
+}

@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import FileTree from './FileTree';
 import WorkspaceSelector from './WorkspaceSelector';
 import SearchPanel from './SearchPanel';
+import GitPanel from './GitPanel';
+import SnapshotPanel from './SnapshotPanel';
 import useWorkspaceStore from '../store/workspaceStore';
 
 const Sidebar = () => {
@@ -30,6 +32,20 @@ const Sidebar = () => {
         >
           Search
         </button>
+        <button
+          className={`sidebar-tab ${activeTab === 'git' ? 'active' : ''}`}
+          onClick={() => setActiveTab('git')}
+          title="Source Control"
+        >
+          Git
+        </button>
+        <button
+          className={`sidebar-tab ${activeTab === 'snapshots' ? 'active' : ''}`}
+          onClick={() => setActiveTab('snapshots')}
+          title="Workspace Snapshots"
+        >
+          Snapshots
+        </button>
       </div>
 
       {/* Content */}
@@ -45,6 +61,8 @@ const Sidebar = () => {
           </>
         )}
         {activeTab === 'search' && <SearchPanel />}
+        {activeTab === 'git' && <GitPanel />}
+        {activeTab === 'snapshots' && <SnapshotPanel />}
       </div>
     </>
   );

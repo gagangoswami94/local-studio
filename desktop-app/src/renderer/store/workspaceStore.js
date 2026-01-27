@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { readDirectory, readFile, writeFile, lintFile } from '../utils/ipc';
 import logger from '../utils/logger';
 import useProblemsStore from './problemsStore';
+import useGitStore from './gitStore';
 
 /**
  * Helper function to trigger linting for a file
@@ -56,7 +57,7 @@ const useWorkspaceStore = create((set, get) => ({
   files: [],
   allFiles: [], // Flattened array of all files for quick search
   recentFiles: JSON.parse(localStorage.getItem('recentFiles') || '[]'), // Recently opened files (paths only)
-  openFiles: [], // Array of { path, name, content, isDirty }
+  openFiles: [], // Array of { path, name, content, isDirty, isDiff?, originalContent? }
   activeFile: null, // Path of currently active file
   isSaving: false, // true when saving
   saveError: null, // Error message if save fails
@@ -88,6 +89,12 @@ const useWorkspaceStore = create((set, get) => ({
 
         logger.info(`Workspace opened successfully: ${path}`, 'System');
         logger.info(`Indexed ${allFiles.length} files`, 'System');
+
+        // Initialize git status
+        const { setWorkspacePath, fetchGitStatus } = useGitStore.getState();
+        setWorkspacePath(path);
+        fetchGitStatus(path);
+
         return { success: true };
       } else {
         logger.error(`Failed to load workspace: ${result.error}`, 'System');
@@ -168,6 +175,79 @@ const useWorkspaceStore = create((set, get) => ({
     } else {
       logger.error(`Failed to open file ${fileName}: ${result.error}`, 'System');
       return { success: false, error: result.error };
+    }
+  },
+
+  /**
+   * Open file in diff mode to view git changes
+   * @param {string} filePath - Full path to the file
+   * @param {string} fileName - File name
+   * @param {string} gitDiff - Git diff content
+   */
+  openFileDiff: async (filePath, fileName, gitDiff) => {
+    const { openFiles, recentFiles, workspacePath } = get();
+
+    // Check if file is already open as diff
+    const existingFile = openFiles.find(f => f.path === filePath);
+    if (existingFile && existingFile.isDiff) {
+      set({ activeFile: filePath });
+      return { success: true };
+    }
+
+    // If file is open in normal mode, close it first
+    if (existingFile && !existingFile.isDiff) {
+      get().closeFile(filePath);
+    }
+
+    logger.info(`Opening file diff: ${fileName}`, 'System');
+
+    try {
+      // Read current file content
+      const result = await readFile(filePath);
+
+      if (!result.success) {
+        logger.error(`Failed to read file for diff: ${result.error}`, 'System');
+        return { success: false, error: result.error };
+      }
+
+      const modifiedContent = result.data;
+
+      // Get original content from git HEAD
+      let originalContent = '';
+      const relativePath = filePath.replace(workspacePath + '/', '');
+      const originalResult = await window.electronAPI.git.getOriginalContent(workspacePath, relativePath);
+
+      if (originalResult.success) {
+        originalContent = originalResult.data;
+      }
+
+      const diffFile = {
+        path: filePath,
+        name: fileName,
+        content: modifiedContent,
+        originalContent: originalContent,
+        isDiff: true,
+        isDirty: false // Diff views are read-only
+      };
+
+      // Update recent files
+      const updatedRecentFiles = [
+        filePath,
+        ...recentFiles.filter(p => p !== filePath)
+      ].slice(0, 20);
+
+      set({
+        openFiles: [...openFiles, diffFile],
+        activeFile: filePath,
+        recentFiles: updatedRecentFiles
+      });
+
+      localStorage.setItem('recentFiles', JSON.stringify(updatedRecentFiles));
+
+      return { success: true };
+    } catch (error) {
+      logger.error(`Error opening file diff: ${error.message}`, 'System');
+      return { success: false, error: error.message };
     }
   },
 
@@ -263,6 +343,13 @@ const useWorkspaceStore = create((set, get) => ({
         // Trigger linting after save
         triggerLinting(filePath, file.content);
 
+        // Refresh git status after save
+        const { workspacePath } = get();
+        if (workspacePath) {
+          const { fetchGitStatus } = useGitStore.getState();
+          fetchGitStatus(workspacePath);
+        }
+
         return { success: true };
       } else {
         logger.error(`Failed to save file ${file.name}: ${result.error}`, 'System');
@@ -296,6 +383,14 @@ const useWorkspaceStore = create((set, get) => ({
       if (allSucceeded) {
         const updatedFiles = openFiles.map(f => ({ ...f, isDirty: false }));
         set({ openFiles: updatedFiles, isSaving: false });
+
+        // Refresh git status after saving all files
+        const { workspacePath } = get();
+        if (workspacePath) {
+          const { fetchGitStatus } = useGitStore.getState();
+          fetchGitStatus(workspacePath);
+        }
+
         return { success: true };
       } else {
         const errors = results.filter(r => !r.success).map(r => r.error);

@@ -1,6 +1,8 @@
 import React, { useRef, useEffect } from 'react';
 
 const getFileIcon = (fileName) => {
+  if (!fileName) return '📄';
+
   const ext = fileName.split('.').pop().toLowerCase();
   const iconMap = {
     'js': '📄',
@@ -56,13 +58,16 @@ const EditorTabs = ({ tabs, activeTab, onTabClick, onTabClose }) => {
         {tabs.map((tab) => (
           <div
             key={tab.path}
-            className={`editor-tab ${tab.path === activeTab ? 'active' : ''} ${tab.isDirty ? 'modified' : ''}`}
+            className={`editor-tab ${tab.path === activeTab ? 'active' : ''} ${tab.isDirty ? 'modified' : ''} ${tab.isDiff ? 'diff-view' : ''}`}
             onClick={(e) => handleTabClick(tab, e)}
             onMouseDown={(e) => handleTabClick(tab, e)}
-            title={tab.path}
+            title={tab.isDiff ? `${tab.path} (Diff View)` : tab.path}
           >
             <span className="tab-icon">{getFileIcon(tab.name)}</span>
-            <span className="tab-name">{tab.name}</span>
+            <span className="tab-name">
+              {tab.name}
+              {tab.isDiff && <span className="tab-diff-badge">diff</span>}
+            </span>
             {tab.isDirty && <span className="tab-modified">•</span>}
             <button
               className="tab-close"

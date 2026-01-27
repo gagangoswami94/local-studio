@@ -42,8 +42,7 @@ async function lintFile(filePath, content) {
     }
 
     const eslint = new ESLint({
-      overrideConfig: eslintConfig,
-      useEslintrc: false
+      overrideConfig: eslintConfig
     });
 
     const results = await eslint.lintText(content, {

@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import useSettingsStore, { defaultSettings } from '../store/settingsStore';
+import ThemeSelector from './ThemeSelector';
 
 const SettingsPanel = () => {
   const { settings, updateSetting, resetSetting, resetAllSettings } = useSettingsStore();
@@ -64,22 +65,6 @@ const SettingsPanel = () => {
           label: 'Format On Save',
           description: 'Format a file on save',
           type: 'checkbox'
-        }
-      ]
-    },
-    {
-      section: 'Appearance',
-      icon: '🎨',
-      settings: [
-        {
-          key: 'workbench.colorTheme',
-          label: 'Color Theme',
-          description: 'Specifies the color theme used in the workbench',
-          type: 'select',
-          options: [
-            { value: 'dark', label: 'Dark' },
-            { value: 'light', label: 'Light' }
-          ]
         }
       ]
     },
@@ -283,6 +268,9 @@ const SettingsPanel = () => {
           onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
+
+      {/* Theme Selector */}
+      {!searchQuery && <ThemeSelector />}
 
       {/* Settings Sections */}
       <div className="settings-content">

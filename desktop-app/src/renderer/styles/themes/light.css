@@ -1,0 +1,85 @@
+/**
+ * Light Theme (VS Code Light+ inspired)
+ */
+
+:root[data-theme="light"] {
+  /* Background colors */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f3f3f3;
+  --bg-tertiary: #e8e8e8;
+  --bg-elevated: #fafafa;
+  --bg-overlay: rgba(0, 0, 0, 0.3);
+
+  /* Text colors */
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --text-disabled: #aaaaaa;
+  --text-muted: #888888;
+  --text-inverse: #ffffff;
+
+  /* Border colors */
+  --border-color: #d4d4d4;
+  --border-light: #e5e5e5;
+  --border-focus: #0066bf;
+
+  /* Interactive states */
+  --hover-bg: rgba(0, 0, 0, 0.05);
+  --active-bg: rgba(0, 0, 0, 0.1);
+  --selected-bg: rgba(0, 102, 191, 0.15);
+  --focus-outline: #0066bf;
+
+  /* Accent colors */
+  --accent-primary: #0066bf;
+  --accent-primary-hover: #005ba1;
+  --accent-primary-active: #004578;
+  --accent-secondary: #0099cc;
+
+  /* Legacy aliases for backwards compatibility */
+  --accent-blue: var(--accent-primary);
+
+  /* Status colors */
+  --error: #d32f2f;
+  --error-bg: rgba(211, 47, 47, 0.1);
+  --error-border: rgba(211, 47, 47, 0.3);
+
+  --warning: #f57c00;
+  --warning-bg: rgba(245, 124, 0, 0.1);
+  --warning-border: rgba(245, 124, 0, 0.3);
+
+  --info: #1976d2;
+  --info-bg: rgba(25, 118, 210, 0.1);
+  --info-border: rgba(25, 118, 210, 0.3);
+
+  --success: #388e3c;
+  --success-bg: rgba(56, 142, 60, 0.1);
+  --success-border: rgba(56, 142, 60, 0.3);
+
+  /* Git status colors */
+  --git-modified: #f57c00;
+  --git-added: #388e3c;
+  --git-deleted: #d32f2f;
+  --git-untracked: #1976d2;
+  --git-renamed: #7b1fa2;
+  --git-conflicted: #e64a19;
+
+  /* Syntax highlighting (for code displays) */
+  --syntax-keyword: #0000ff;
+  --syntax-string: #a31515;
+  --syntax-comment: #008000;
+  --syntax-function: #795e26;
+  --syntax-variable: #001080;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.16);
+  --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.2);
+
+  /* Monaco editor theme */
+  --monaco-theme: 'vs-light';
+
+  /* Terminal colors */
+  --terminal-bg: #ffffff;
+  --terminal-fg: #333333;
+  --terminal-cursor: #000000;
+  --terminal-selection: rgba(0, 0, 0, 0.3);
+}

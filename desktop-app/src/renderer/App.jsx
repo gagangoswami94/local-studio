@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import './styles/app.css';
+import './styles/themes/dark.css';
+import './styles/themes/light.css';
+import { initTheme } from './styles/themes/themes';
 import MenuBar from './components/MenuBar';
 import Sidebar from './components/Sidebar';
 import EditorArea from './components/EditorArea';
@@ -13,6 +16,7 @@ import usePanelStore from './store/panelStore';
 import useWorkspaceStore from './store/workspaceStore';
 import useCommandStore from './store/commandStore';
 import useSettingsStore from './store/settingsStore';
+import useSnapshotStore from './store/snapshotStore';
 
 const App = () => {
   const {
@@ -29,16 +33,23 @@ const App = () => {
     saveAllFiles,
     activeFile,
     openWorkspace,
-    openSpecialTab
+    openSpecialTab,
+    workspacePath
   } = useWorkspaceStore();
 
   const { registerCommands, togglePalette } = useCommandStore();
+  const { createSnapshot } = useSnapshotStore();
 
   const [sidebarWidth, setSidebarWidth] = useState(250);
   const [rightPanelWidth, setRightPanelWidth] = useState(400);
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [isQuickOpenOpen, setIsQuickOpenOpen] = useState(false);
   const [quickOpenRecentOnly, setQuickOpenRecentOnly] = useState(false);
+
+  // Initialize theme system
+  useEffect(() => {
+    initTheme();
+  }, []);
 
   // Register default commands
   useEffect(() => {
@@ -83,6 +94,27 @@ const App = () => {
 
     const handleOpenSettings = () => {
       openSpecialTab('settings:', 'Settings');
+    };
+
+    const handleCreateSnapshot = async () => {
+      if (!workspacePath) {
+        alert('No workspace is open');
+        return;
+      }
+
+      const description = prompt('Enter a description for this snapshot (optional):');
+      if (description === null) {
+        // User cancelled
+        return;
+      }
+
+      const success = await createSnapshot(workspacePath, description);
+
+      if (success) {
+        alert('Snapshot created successfully!');
+      } else {
+        alert('Failed to create snapshot. Check console for errors.');
+      }
     };
 
     registerCommands([
@@ -141,9 +173,16 @@ const App = () => {
         category: 'Preferences',
         keybinding: 'Cmd+,',
         action: handleOpenSettings
+      },
+      {
+        id: 'workspace.createSnapshot',
+        label: 'Create Snapshot',
+        category: 'Workspace',
+        keybinding: '',
+        action: handleCreateSnapshot
       }
     ]);
-  }, [registerCommands, activeFile, saveFile, saveAllFiles, toggleBottomPanel, openBottomPanel, openWorkspace, sidebarVisible, openSpecialTab]);
+  }, [registerCommands, activeFile, saveFile, saveAllFiles, toggleBottomPanel, openBottomPanel, openWorkspace, sidebarVisible, openSpecialTab, workspacePath, createSnapshot]);
 
   // Keyboard shortcuts
   useEffect(() => {

@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import useWorkspaceStore from '../store/workspaceStore';
-import useSettingsStore from '../store/settingsStore';
+import { getCurrentTheme, applyTheme } from '../styles/themes/themes';
 
 const getLanguageDisplayName = (path) => {
   if (!path) return 'Plain Text';
@@ -23,19 +23,25 @@ const getLanguageDisplayName = (path) => {
 };
 
 const StatusBar = ({ cursorPosition }) => {
-  const { activeFile, openFiles, isSaving, saveError } = useWorkspaceStore();
-  const { settings, updateSetting } = useSettingsStore();
+  const { activeFile, openFiles, isSaving, saveError} = useWorkspaceStore();
+  const [currentTheme, setCurrentTheme] = useState(getCurrentTheme());
 
   const activeFileData = openFiles.find(f => f.path === activeFile);
   const hasUnsavedChanges = openFiles.some(f => f.isDirty);
   const language = activeFile ? getLanguageDisplayName(activeFile) : 'Plain Text';
 
-  const currentTheme = settings['workbench.colorTheme'];
-  const isDarkTheme = currentTheme === 'dark';
+  // Listen for theme changes
+  useEffect(() => {
+    const handleThemeChange = (event) => {
+      setCurrentTheme(event.detail.themeId);
+    };
+    window.addEventListener('themechange', handleThemeChange);
+    return () => window.removeEventListener('themechange', handleThemeChange);
+  }, []);
 
   const toggleTheme = () => {
-    const newTheme = isDarkTheme ? 'light' : 'dark';
-    updateSetting('workbench.colorTheme', newTheme);
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    applyTheme(newTheme);
   };
 
   return (
@@ -68,17 +74,6 @@ const StatusBar = ({ cursorPosition }) => {
 
       {/* Right side */}
       <div className="status-bar-right">
-        <div
-          className="status-item status-theme-toggle"
-          onClick={toggleTheme}
-          title={`Switch to ${isDarkTheme ? 'light' : 'dark'} theme`}
-          style={{ cursor: 'pointer' }}
-        >
-          {isDarkTheme ? '☀️' : '🌙'}
-        </div>
-
-        <div className="status-separator">|</div>
-
         {saveError && (
           <div className="status-item status-error" title={saveError}>
             ⚠️ Save Error
@@ -102,6 +97,16 @@ const StatusBar = ({ cursorPosition }) => {
             ✓ Saved
           </div>
         )}
+
+        <div className="status-separator">|</div>
+
+        <div
+          className="status-item status-theme-toggle"
+          onClick={toggleTheme}
+          title={`Switch to ${currentTheme === 'dark' ? 'light' : 'dark'} theme`}
+        >
+          {currentTheme === 'dark' ? '☀️' : '🌙'}
+        </div>
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import React from 'react';
 import Editor from './Editor';
+import DiffViewer from './DiffViewer';
 import EditorTabs from './EditorTabs';
 import SettingsPanel from './SettingsPanel';
 import useWorkspaceStore from '../store/workspaceStore';
@@ -31,9 +32,11 @@ const EditorArea = () => {
   const activeFileData = openFiles.find(f => f.path === activeFile);
   const content = activeFileData ? activeFileData.content : '// Welcome to Local Studio\n// Open a file to start editing';
   const language = activeFileData ? getLanguageFromPath(activeFileData.path) : 'javascript';
+  const isDiffView = activeFileData ? activeFileData.isDiff : false;
+  const originalContent = activeFileData ? activeFileData.originalContent : '';
 
   const handleCodeChange = (newCode) => {
-    if (activeFile) {
+    if (activeFile && !isDiffView) {
       updateFileContent(activeFile, newCode);
     }
   };
@@ -99,6 +102,13 @@ const EditorArea = () => {
       <div className="editor-wrapper">
         {isSettingsTab ? (
           <SettingsPanel />
+        ) : isDiffView ? (
+          <DiffViewer
+            original={originalContent || ''}
+            modified={content}
+            language={language}
+            path={activeFile || 'diff.js'}
+          />
         ) : (
           <Editor
             value={content}

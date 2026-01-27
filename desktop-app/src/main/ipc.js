@@ -4,6 +4,8 @@ const workspace = require('./workspace');
 const terminal = require('./terminal');
 const linter = require('./linter');
 const search = require('./search');
+const git = require('./git');
+const snapshots = require('./snapshots');
 
 /**
  * Register all IPC handlers
@@ -110,6 +112,58 @@ function registerIpcHandlers(mainWindow) {
     return await search.searchFiles(workspacePath, query, options);
   });
 
+  // Git operations
+  ipcMain.handle('git:getStatus', async (event, workspacePath) => {
+    console.log('IPC: Getting git status for:', workspacePath);
+    return await git.getStatus(workspacePath);
+  });
+
+  ipcMain.handle('git:getCurrentBranch', async (event, workspacePath) => {
+    console.log('IPC: Getting current branch for:', workspacePath);
+    return await git.getCurrentBranch(workspacePath);
+  });
+
+  ipcMain.handle('git:getLog', async (event, workspacePath, limit) => {
+    console.log('IPC: Getting git log for:', workspacePath);
+    return await git.getLog(workspacePath, limit);
+  });
+
+  ipcMain.handle('git:getFileDiff', async (event, workspacePath, filePath) => {
+    console.log('IPC: Getting file diff for:', filePath);
+    return await git.getFileDiff(workspacePath, filePath);
+  });
+
+  ipcMain.handle('git:isGitRepository', async (event, workspacePath) => {
+    console.log('IPC: Checking if git repository:', workspacePath);
+    return await git.isGitRepository(workspacePath);
+  });
+
+  ipcMain.handle('git:getOriginalContent', async (event, workspacePath, filePath) => {
+    console.log('IPC: Getting original content for:', filePath);
+    return await git.getOriginalContent(workspacePath, filePath);
+  });
+
+  // Snapshot operations
+  ipcMain.handle('snapshots:create', async (event, workspacePath, description) => {
+    console.log('IPC: Creating snapshot for:', workspacePath);
+    return await snapshots.createSnapshot(workspacePath, description);
+  });
+
+  ipcMain.handle('snapshots:list', async (event, workspacePath) => {
+    console.log('IPC: Listing snapshots for:', workspacePath);
+    return await snapshots.listSnapshots(workspacePath);
+  });
+
+  ipcMain.handle('snapshots:restore', async (event, workspacePath, snapshotId) => {
+    console.log('IPC: Restoring snapshot:', snapshotId);
+    return await snapshots.restoreSnapshot(workspacePath, snapshotId);
+  });
+
+  ipcMain.handle('snapshots:delete', async (event, workspacePath, snapshotId) => {
+    console.log('IPC: Deleting snapshot:', snapshotId);
+    return await snapshots.deleteSnapshot(workspacePath, snapshotId);
+  });
+
   console.log('IPC handlers registered');
 }
 
@@ -133,6 +187,16 @@ function unregisterIpcHandlers() {
   ipcMain.removeHandler('terminal:destroy');
   ipcMain.removeHandler('linter:lintFile');
   ipcMain.removeHandler('search:searchFiles');
+  ipcMain.removeHandler('git:getStatus');
+  ipcMain.removeHandler('git:getCurrentBranch');
+  ipcMain.removeHandler('git:getLog');
+  ipcMain.removeHandler('git:getFileDiff');
+  ipcMain.removeHandler('git:isGitRepository');
+  ipcMain.removeHandler('git:getOriginalContent');
+  ipcMain.removeHandler('snapshots:create');
+  ipcMain.removeHandler('snapshots:list');
+  ipcMain.removeHandler('snapshots:restore');
+  ipcMain.removeHandler('snapshots:delete');
 
   // Cleanup all terminals
   terminal.cleanupAllTerminals();

@@ -46,6 +46,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Search operations
   search: {
     searchFiles: (workspacePath, query, options) => ipcRenderer.invoke('search:searchFiles', workspacePath, query, options)
+  },
+
+  // Git operations
+  git: {
+    getStatus: (workspacePath) => ipcRenderer.invoke('git:getStatus', workspacePath),
+    getCurrentBranch: (workspacePath) => ipcRenderer.invoke('git:getCurrentBranch', workspacePath),
+    getLog: (workspacePath, limit) => ipcRenderer.invoke('git:getLog', workspacePath, limit),
+    getFileDiff: (workspacePath, filePath) => ipcRenderer.invoke('git:getFileDiff', workspacePath, filePath),
+    isGitRepository: (workspacePath) => ipcRenderer.invoke('git:isGitRepository', workspacePath),
+    getOriginalContent: (workspacePath, filePath) => ipcRenderer.invoke('git:getOriginalContent', workspacePath, filePath)
+  },
+
+  // Snapshot operations
+  snapshots: {
+    create: (workspacePath, description) => ipcRenderer.invoke('snapshots:create', workspacePath, description),
+    list: (workspacePath) => ipcRenderer.invoke('snapshots:list', workspacePath),
+    restore: (workspacePath, snapshotId) => ipcRenderer.invoke('snapshots:restore', workspacePath, snapshotId),
+    delete: (workspacePath, snapshotId) => ipcRenderer.invoke('snapshots:delete', workspacePath, snapshotId)
   }
 });
 

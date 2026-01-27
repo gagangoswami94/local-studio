@@ -3,6 +3,53 @@ import { Terminal as XTerm } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
 import useSettingsStore from '../store/settingsStore';
+import { getCurrentTheme, getTheme } from '../styles/themes/themes';
+
+// Terminal themes
+const terminalThemes = {
+  dark: {
+    background: '#1e1e1e',
+    foreground: '#cccccc',
+    cursor: '#ffffff',
+    black: '#000000',
+    red: '#cd3131',
+    green: '#0dbc79',
+    yellow: '#e5e510',
+    blue: '#2472c8',
+    magenta: '#bc3fbc',
+    cyan: '#11a8cd',
+    white: '#e5e5e5',
+    brightBlack: '#666666',
+    brightRed: '#f14c4c',
+    brightGreen: '#23d18b',
+    brightYellow: '#f5f543',
+    brightBlue: '#3b8eea',
+    brightMagenta: '#d670d6',
+    brightCyan: '#29b8db',
+    brightWhite: '#e5e5e5'
+  },
+  light: {
+    background: '#ffffff',
+    foreground: '#333333',
+    cursor: '#000000',
+    black: '#000000',
+    red: '#cd3131',
+    green: '#00bc00',
+    yellow: '#949800',
+    blue: '#0451a5',
+    magenta: '#bc05bc',
+    cyan: '#0598bc',
+    white: '#555555',
+    brightBlack: '#666666',
+    brightRed: '#cd3131',
+    brightGreen: '#14ce14',
+    brightYellow: '#b5ba00',
+    brightBlue: '#0451a5',
+    brightMagenta: '#bc05bc',
+    brightCyan: '#0598bc',
+    brightWhite: '#a5a5a5'
+  }
+};
 
 const Terminal = ({ workspacePath, isVisible = true }) => {
   const { settings } = useSettingsStore();
@@ -29,6 +76,15 @@ const Terminal = ({ workspacePath, isVisible = true }) => {
       return { cols, rows };
     };
 
+    // Handle theme changes
+    const handleThemeChange = (event) => {
+      if (xtermRef.current) {
+        const themeId = event.detail.themeId;
+        const newTerminalTheme = terminalThemes[themeId] || terminalThemes.dark;
+        xtermRef.current.options.theme = newTerminalTheme;
+      }
+    };
+
     // Wait for container to have dimensions
     const initWhenReady = () => {
       const { clientWidth, clientHeight } = container;
@@ -40,6 +96,11 @@ const Terminal = ({ workspacePath, isVisible = true }) => {
       }
 
       // Container ready, initialize
+      // Get current theme
+      const currentThemeId = getCurrentTheme();
+      const currentTheme = getTheme(currentThemeId);
+      const terminalTheme = terminalThemes[currentThemeId] || terminalThemes.dark;
+
       // Create xterm with safe default dimensions to avoid viewport issues
       const xterm = new XTerm({
         cols: 80,
@@ -47,32 +108,15 @@ const Terminal = ({ workspacePath, isVisible = true }) => {
         cursorBlink: true,
         fontSize: settings['terminal.fontSize'] || 14,
         fontFamily: 'Menlo, Monaco, "Courier New", monospace',
-        theme: {
-          background: '#1e1e1e',
-          foreground: '#cccccc',
-          cursor: '#ffffff',
-          black: '#000000',
-          red: '#cd3131',
-          green: '#0dbc79',
-          yellow: '#e5e510',
-          blue: '#2472c8',
-          magenta: '#bc3fbc',
-          cyan: '#11a8cd',
-          white: '#e5e5e5',
-          brightBlack: '#666666',
-          brightRed: '#f14c4c',
-          brightGreen: '#23d18b',
-          brightYellow: '#f5f543',
-          brightBlue: '#3b8eea',
-          brightMagenta: '#d670d6',
-          brightCyan: '#29b8db',
-          brightWhite: '#e5e5e5'
-        },
+        theme: terminalTheme,
         allowProposedApi: true,
         convertEol: true
       });
 
       xtermRef.current = xterm;
+
+      // Listen for theme changes
+      window.addEventListener('themechange', handleThemeChange);
 
       // Handle terminal data from backend
       const handleData = (id, data) => {
@@ -251,6 +295,9 @@ const Terminal = ({ workspacePath, isVisible = true }) => {
       mounted = false;
       isFitReadyRef.current = false;
       clearTimeout(resizeTimeout);
+
+      // Remove theme change listener
+      window.removeEventListener('themechange', handleThemeChange);
 
       // Disconnect ResizeObserver immediately
       if (resizeObserverRef.current) {

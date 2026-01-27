@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import useGitStore from '../store/gitStore';
+import useWorkspaceStore from '../store/workspaceStore';
 
 const getFileIcon = (name, isDirectory) => {
   if (isDirectory) return '📁';
@@ -20,10 +22,38 @@ const getFileIcon = (name, isDirectory) => {
   return iconMap[ext] || '📄';
 };
 
-const FileTreeItem = ({ item, level = 0, onFileSelect, selectedFile }) => {
+const getGitStatusColor = (status) => {
+  if (!status) return null;
+
+  switch (status) {
+    case 'M': return '#FFA500'; // Modified - Orange
+    case 'A': return '#4CAF50'; // Added - Green
+    case 'D': return '#F44336'; // Deleted - Red
+    case '?': return '#2196F3'; // Untracked - Blue
+    case 'R': return '#9C27B0'; // Renamed - Purple
+    case 'C': return '#FF5722'; // Conflicted - Deep Orange
+    default: return null;
+  }
+};
+
+const FileTreeItem = ({ item, level = 0, onFileSelect, selectedFile, workspacePath }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const isDirectory = item.type === 'directory';
   const isSelected = selectedFile === item.path;
+  const { getFileStatusType, isGitRepo } = useGitStore();
+
+  // Get relative path for git status
+  const getRelativePath = (fullPath) => {
+    if (!workspacePath || !fullPath) return null;
+    if (fullPath.startsWith(workspacePath)) {
+      return fullPath.substring(workspacePath.length + 1);
+    }
+    return null;
+  };
+
+  const relativePath = getRelativePath(item.path);
+  const gitStatus = isGitRepo && relativePath ? getFileStatusType(relativePath) : null;
+  const statusColor = getGitStatusColor(gitStatus);
 
   const handleClick = () => {
     if (isDirectory) {
@@ -61,7 +91,18 @@ const FileTreeItem = ({ item, level = 0, onFileSelect, selectedFile }) => {
         )}
         {!isDirectory && <span style={{ width: '16px', display: 'inline-block' }}></span>}
         <span className="file-icon">{getFileIcon(item.name, isDirectory)}</span>
-        <span className="file-name">{item.name}</span>
+        <span className="file-name" style={{ color: statusColor || 'inherit' }}>
+          {item.name}
+        </span>
+        {gitStatus && (
+          <span
+            className="file-git-status"
+            style={{ color: statusColor }}
+            title={`Git status: ${gitStatus}`}
+          >
+            {gitStatus}
+          </span>
+        )}
       </div>
       {isDirectory && isExpanded && item.children && (
         <div className="file-tree-children">
@@ -72,6 +113,7 @@ const FileTreeItem = ({ item, level = 0, onFileSelect, selectedFile }) => {
               level={level + 1}
               onFileSelect={onFileSelect}
               selectedFile={selectedFile}
+              workspacePath={workspacePath}
             />
           ))}
         </div>
@@ -81,6 +123,8 @@ const FileTreeItem = ({ item, level = 0, onFileSelect, selectedFile }) => {
 };
 
 const FileTree = ({ files, onFileSelect, selectedFile }) => {
+  const { workspacePath } = useWorkspaceStore();
+
   if (!files || files.length === 0) {
     return (
       <div style={{ padding: '16px', fontSize: '12px', opacity: 0.5 }}>
@@ -97,6 +141,7 @@ const FileTree = ({ files, onFileSelect, selectedFile }) => {
           item={item}
           onFileSelect={onFileSelect}
           selectedFile={selectedFile}
+          workspacePath={workspacePath}
         />
       ))}
     </div>
