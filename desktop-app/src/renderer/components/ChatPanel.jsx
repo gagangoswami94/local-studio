@@ -349,6 +349,7 @@ const ChatPanel = () => {
                     <span className="message-role">AI Assistant</span>
                   </div>
                   <div className="message-loading">
+                    <span className="loading-text">AI is thinking</span>
                     <span className="loading-dot"></span>
                     <span className="loading-dot"></span>
                     <span className="loading-dot"></span>

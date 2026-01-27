@@ -21,7 +21,13 @@ const defaultSettings = {
 
   // Files settings
   'files.autoSave': 'off', // off, afterDelay
-  'files.autoSaveDelay': 1000
+  'files.autoSaveDelay': 1000,
+
+  // API settings
+  'api.url': 'http://localhost:3001/api',
+  'api.key': '', // Optional API key for future auth
+  'api.timeout': 30000, // Request timeout in ms
+  'api.retries': 2 // Number of retries on network errors
 };
 
 // Load settings from localStorage

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { askMode, planMode, actMode } from '../services/mockAI';
+import * as api from '../services/api';
 
 // Get initial mode from localStorage or default to 'ask'
 const getInitialMode = () => {
@@ -93,7 +93,7 @@ const useChatStore = create((set, get) => ({
 
   // Actions
   sendMessage: async (content) => {
-    const { messages, currentMode } = get();
+    const { messages, currentMode, contextFiles } = get();
 
     // Add user message
     const userMessage = {
@@ -105,30 +105,57 @@ const useChatStore = create((set, get) => ({
 
     set({ messages: [...messages, userMessage], isLoading: true });
 
-    // Call appropriate mock AI function based on mode
+    // Call appropriate AI function based on mode
     try {
       let aiResponse;
 
+      // Load context file contents
+      const contextWithContent = await Promise.all(
+        contextFiles.map(async (filePath) => {
+          try {
+            const result = await window.electronAPI.fs.readFile(filePath);
+            if (result.success) {
+              return {
+                path: filePath,
+                content: result.data
+              };
+            }
+            return null;
+          } catch (error) {
+            console.error('Failed to load context file:', filePath, error);
+            return null;
+          }
+        })
+      );
+
+      // Filter out any failed loads
+      const validContext = contextWithContent.filter(c => c !== null);
+
       if (currentMode === 'ask') {
-        // Ask mode - return markdown explanation
-        const responseText = await askMode(content);
+        // Ask mode - call real API
+        const response = await api.ask(content, validContext);
         aiResponse = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: responseText,
-          timestamp: new Date().toISOString()
+          content: response.response,
+          timestamp: new Date().toISOString(),
+          usage: response.usage,
+          model: response.model
         };
         set({ messages: [...get().messages, aiResponse], isLoading: false });
 
       } else if (currentMode === 'plan') {
-        // Plan mode - return structured plan
-        const plan = await planMode(content);
+        // Plan mode - call real API
+        const response = await api.plan(content, validContext);
+        const plan = response.data.response; // Extract plan from response
         aiResponse = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
           content: plan, // Store plan object directly
           mode: 'plan',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          usage: response.data.usage,
+          model: response.data.model
         };
         set({
           messages: [...get().messages, aiResponse],
@@ -137,38 +164,50 @@ const useChatStore = create((set, get) => ({
         });
 
       } else if (currentMode === 'act') {
-        // Act mode - return patch bundle
-        const result = await actMode(content);
+        // Act mode - call real API with approved plan if available
+        const { pendingPlan } = get();
+        const response = await api.act(content, validContext, pendingPlan);
+        const result = response.data.response; // Extract result from response
 
         // Format result as markdown
         let resultMarkdown = `# ${result.title}\n\n`;
-        resultMarkdown += `✅ **${result.filesCreated} file(s) created**\n`;
-        resultMarkdown += `📝 **${result.filesModified} file(s) modified**\n`;
-        resultMarkdown += `➕ **${result.linesAdded} lines added**\n\n`;
+        resultMarkdown += `✅ **${result.filesCreated || 0} file(s) created**\n`;
+        resultMarkdown += `📝 **${result.filesModified || 0} file(s) modified**\n`;
+        resultMarkdown += `➕ **${result.files?.length || 0} files changed**\n\n`;
         resultMarkdown += `## Summary\n${result.summary}\n\n`;
-        resultMarkdown += `## Files Changed\n\n`;
 
-        result.files.forEach(file => {
-          resultMarkdown += `### ${file.path} (${file.action})\n\n`;
-          resultMarkdown += '```diff\n' + file.diff + '\n```\n\n';
-        });
+        if (result.files && result.files.length > 0) {
+          resultMarkdown += `## Files Changed\n\n`;
+          result.files.forEach(file => {
+            resultMarkdown += `### ${file.path} (${file.action})\n\n`;
+            resultMarkdown += '```diff\n' + file.diff + '\n```\n\n';
+          });
+        }
 
         aiResponse = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
           content: resultMarkdown,
           mode: 'act',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          usage: response.data.usage,
+          model: response.data.model
         };
         set({ messages: [...get().messages, aiResponse], isLoading: false });
       }
 
     } catch (error) {
       console.error('Failed to get AI response:', error);
+
+      // Use user-friendly error message if available
+      const errorContent = error.userMessage || `❌ **Error**\n\n${error.message || 'Failed to generate response. Please try again.'}`;
+
       const errorMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: '❌ **Error**: Failed to generate response. Please try again.',
+        content: errorContent,
+        error: true,
+        errorType: error.type || 'unknown',
         timestamp: new Date().toISOString()
       };
       set({ messages: [...get().messages, errorMessage], isLoading: false });

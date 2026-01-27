@@ -1,12 +1,14 @@
 /**
- * Mock AI Service for Testing UI
- * Simulates AI responses for Ask, Plan, and Act modes
+ * AI Service - Connects to Cloud API
+ * Calls real Anthropic API via cloud-api server
  */
 
-// Simulate API delay
+const API_URL = 'http://localhost:3001/api';
+
+// Simulate API delay (for fallback mock mode)
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Mock responses for Ask mode
+// Fallback mock responses for Ask mode (when API is unavailable)
 const askModeResponses = [
   {
     keywords: ['error', 'bug', 'issue', 'problem', 'wrong'],
@@ -350,25 +352,55 @@ const actModeTemplates = [
 
 /**
  * Ask Mode - Returns helpful explanations
+ * Now calls real API with context files
  */
-export const askMode = async (message) => {
-  await delay(2000);
+export const askMode = async (message, contextFiles = []) => {
+  try {
+    // Call real cloud API
+    const response = await fetch(`${API_URL}/chat/ask`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        message,
+        context: contextFiles
+      })
+    });
 
-  const lowerMessage = message.toLowerCase();
+    const data = await response.json();
 
-  // Find matching response
-  const match = askModeResponses.find(template =>
-    template.keywords.some(keyword => lowerMessage.includes(keyword))
-  );
+    if (!response.ok) {
+      console.error('API error:', data);
+      throw new Error(data.error || 'Failed to get response');
+    }
 
-  if (match) {
-    return match.response;
-  }
+    // Return the markdown response from API
+    return data.response;
 
-  // Default response
-  return `## Great Question!
+  } catch (error) {
+    console.error('Ask mode error:', error);
+
+    // Fallback to mock response if API unavailable
+    await delay(2000);
+
+    const lowerMessage = message.toLowerCase();
+
+    // Find matching response
+    const match = askModeResponses.find(template =>
+      template.keywords.some(keyword => lowerMessage.includes(keyword))
+    );
+
+    if (match) {
+      return match.response;
+    }
+
+    // Default response
+    return `## Great Question!
 
 I understand you're asking about: "${message}"
+
+**Note**: Cloud API is unavailable. This is a fallback mock response.
 
 Let me help you with that. In general:
 
@@ -389,6 +421,7 @@ console.log('Expected:', expectedValue);
 \`\`\`
 
 Would you like me to dive deeper into any specific aspect?`;
+  }
 };
 
 /**
