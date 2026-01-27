@@ -17,6 +17,7 @@ import useWorkspaceStore from './store/workspaceStore';
 import useCommandStore from './store/commandStore';
 import useSettingsStore from './store/settingsStore';
 import useSnapshotStore from './store/snapshotStore';
+import useChatStore from './store/chatStore';
 
 const App = () => {
   const {
@@ -39,6 +40,7 @@ const App = () => {
 
   const { registerCommands, togglePalette } = useCommandStore();
   const { createSnapshot } = useSnapshotStore();
+  const { addCurrentFileToContext } = useChatStore();
 
   const [sidebarWidth, setSidebarWidth] = useState(250);
   const [rightPanelWidth, setRightPanelWidth] = useState(400);
@@ -242,11 +244,18 @@ const App = () => {
         e.preventDefault();
         openSpecialTab('settings:', 'Settings');
       }
+      // Cmd+Shift+A - Add current file to chat context
+      else if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'A') {
+        e.preventDefault();
+        if (activeFile) {
+          addCurrentFileToContext(activeFile);
+        }
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [toggleBottomPanel, togglePalette, activeFile, saveFile, openWorkspace, sidebarVisible, openSpecialTab]);
+  }, [toggleBottomPanel, togglePalette, activeFile, saveFile, openWorkspace, sidebarVisible, openSpecialTab, addCurrentFileToContext]);
 
   const handleSidebarResize = (delta) => {
     setSidebarWidth((prev) => Math.max(150, Math.min(500, prev + delta)));

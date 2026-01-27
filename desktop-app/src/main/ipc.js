@@ -64,6 +64,11 @@ function registerIpcHandlers(mainWindow) {
     return await workspace.openWorkspace(path);
   });
 
+  ipcMain.handle('workspace:listFiles', async (event, workspacePath) => {
+    console.log('IPC: Listing workspace files:', workspacePath);
+    return await workspace.listAllFiles(workspacePath);
+  });
+
   // Terminal operations
   ipcMain.handle('terminal:create', async (event, options) => {
     console.log('IPC: Creating terminal');
@@ -181,6 +186,7 @@ function unregisterIpcHandlers() {
   ipcMain.removeHandler('fs:pathExists');
   ipcMain.removeHandler('workspace:showOpenDialog');
   ipcMain.removeHandler('workspace:open');
+  ipcMain.removeHandler('workspace:listFiles');
   ipcMain.removeHandler('terminal:create');
   ipcMain.removeHandler('terminal:write');
   ipcMain.removeHandler('terminal:resize');

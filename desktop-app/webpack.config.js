@@ -5,7 +5,7 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 
 module.exports = {
-  target: 'electron-renderer',
+  target: 'web',
   entry: './src/renderer/index.jsx',
   output: {
     path: path.resolve(__dirname, 'dist'),
@@ -13,6 +13,9 @@ module.exports = {
     publicPath: './',
     globalObject: 'this',
     clean: true
+  },
+  externals: {
+    electron: 'commonjs electron'
   },
   module: {
     rules: [
@@ -39,13 +42,20 @@ module.exports = {
   resolve: {
     extensions: ['.js', '.jsx', '.json'],
     fallback: {
-      path: false,
-      fs: false
+      path: require.resolve('path-browserify'),
+      fs: false,
+      util: require.resolve('util/'),
+      url: require.resolve('url/'),
+      buffer: require.resolve('buffer/')
     }
   },
   plugins: [
     new webpack.DefinePlugin({
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development')
+    }),
+    new webpack.ProvidePlugin({
+      Buffer: ['buffer', 'Buffer'],
+      process: 'process/browser'
     }),
     new HtmlWebpackPlugin({
       template: './src/renderer/index.html',

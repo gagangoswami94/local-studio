@@ -23,7 +23,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Workspace operations
   workspace: {
     showOpenDialog: () => ipcRenderer.invoke('workspace:showOpenDialog'),
-    open: (path) => ipcRenderer.invoke('workspace:open', path)
+    open: (path) => ipcRenderer.invoke('workspace:open', path),
+    listFiles: (workspacePath) => ipcRenderer.invoke('workspace:listFiles', workspacePath)
   },
 
   // Terminal operations
