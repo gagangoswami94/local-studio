@@ -11,6 +11,9 @@ const EventTypes = {
   TASK_ERROR: 'task_error',
 
   // Agent operations
+  AGENT_START: 'agent_start',
+  AGENT_COMPLETE: 'agent_complete',
+  AGENT_ERROR: 'agent_error',
   AGENT_THINKING: 'agent_thinking',
   AGENT_ACTION: 'agent_action',
   AGENT_OBSERVATION: 'agent_observation',

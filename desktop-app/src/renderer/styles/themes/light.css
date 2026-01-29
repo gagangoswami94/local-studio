@@ -33,6 +33,8 @@
   --accent-primary-hover: #005ba1;
   --accent-primary-active: #004578;
   --accent-secondary: #0099cc;
+  --accent-purple: #7b1fa2;
+  --accent-purple-hover: #8e24aa;
 
   /* Legacy aliases for backwards compatibility */
   --accent-blue: var(--accent-primary);

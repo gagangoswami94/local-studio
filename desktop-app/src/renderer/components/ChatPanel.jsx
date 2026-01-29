@@ -6,6 +6,9 @@ import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import useChatStore from '../store/chatStore';
 import ChatContext from './ChatContext';
 import FileSelector from './FileSelector';
+import ToolMessage from './ToolMessage';
+import AgenticProgress from './AgenticProgress';
+import ToolApproval from './ToolApproval';
 
 const CodeBlock = ({ language, value }) => {
   const [copied, setCopied] = useState(false);
@@ -153,6 +156,42 @@ const Message = ({ message }) => {
     );
   }
 
+  // Handle tool messages (agentic mode)
+  if (message.tools && Array.isArray(message.tools)) {
+    return (
+      <div className="chat-message tool-message-group">
+        <div className="message-avatar">🤖</div>
+        <div className="message-content-wrapper">
+          <div className="message-header">
+            <span className="message-role">AI Assistant</span>
+            <span className="message-timestamp">
+              {new Date(message.timestamp).toLocaleTimeString()}
+            </span>
+            {message.iteration && (
+              <span className="message-iteration">
+                Step {message.iteration}
+              </span>
+            )}
+          </div>
+          <div className="message-content">
+            {message.content && (
+              <div className="tool-message-text">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {message.content}
+                </ReactMarkdown>
+              </div>
+            )}
+            <div className="tool-messages">
+              {message.tools.map((tool, idx) => (
+                <ToolMessage key={idx} tool={tool} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`chat-message ${isUser ? 'user-message' : 'ai-message'}`}>
       <div className="message-avatar">
@@ -265,7 +304,17 @@ const ModeSelector = () => {
 };
 
 const ChatPanel = () => {
-  const { messages, isLoading, sendMessage, clearChat, currentMode } = useChatStore();
+  const {
+    messages,
+    isLoading,
+    sendMessage,
+    clearChat,
+    currentMode,
+    agenticState,
+    stopAgenticExecution,
+    approveToolExecution,
+    rejectToolExecution
+  } = useChatStore();
   const [input, setInput] = useState('');
   const [isFileSelectorOpen, setIsFileSelectorOpen] = useState(false);
   const messagesEndRef = useRef(null);
@@ -336,6 +385,18 @@ const ChatPanel = () => {
 
       {/* Mode Selector */}
       <ModeSelector />
+
+      {/* Agentic Progress Indicator */}
+      {agenticState.isRunning && (
+        <AgenticProgress
+          currentIteration={agenticState.currentIteration}
+          maxIterations={agenticState.maxIterations}
+          currentTool={agenticState.currentTool}
+          tokensUsed={agenticState.tokensUsed}
+          tokenBudget={agenticState.tokenBudget}
+          onStop={stopAgenticExecution}
+        />
+      )}
 
       {/* Messages */}
       <div className="chat-messages">
@@ -417,6 +478,16 @@ const ChatPanel = () => {
         isOpen={isFileSelectorOpen}
         onClose={() => setIsFileSelectorOpen(false)}
       />
+
+      {/* Tool Approval Modal */}
+      {agenticState.pendingApproval && (
+        <ToolApproval
+          tool={agenticState.pendingApproval}
+          onApprove={approveToolExecution}
+          onReject={rejectToolExecution}
+          timeout={300000}
+        />
+      )}
     </div>
   );
 };

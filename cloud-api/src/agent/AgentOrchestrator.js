@@ -2,7 +2,8 @@ const TokenBudgetManager = require('./TokenBudgetManager');
 const ErrorHandler = require('./ErrorHandler');
 const EventBus = require('./EventBus');
 const StateManager = require('./StateManager');
-const { TaskStatus, PhaseStatus } = StateManager;
+const AgenticRunner = require('./AgenticRunner');
+const { TaskStatus, PhaseStatus} = StateManager;
 const { EventTypes } = EventBus;
 
 /**
@@ -192,6 +193,136 @@ class AgentOrchestrator {
 
       // Emit error event
       this.eventBus.emitEvent(EventTypes.TASK_ERROR, {
+        error: error.message,
+        type: error.name
+      }, taskId);
+
+      return {
+        success: false,
+        taskId,
+        error: error.message,
+        metrics: {
+          tokensUsed: this.budgetManager.usedTokens,
+          budgetRemaining: this.budgetManager.getRemaining()
+        }
+      };
+    }
+  }
+
+  /**
+   * Execute Agentic Mode
+   * Interactive agent that uses tools to complete tasks step-by-step
+   *
+   * @param {Object} request - Request object
+   * @param {string} request.message - User's request message
+   * @param {Array} request.context - Context files with path and content
+   * @param {string} request.workspacePath - Path to workspace
+   * @returns {Promise<Object>} Result with { success, taskId, response, iterations, metrics }
+   */
+  async executeAgenticMode(request) {
+    const taskId = `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    try {
+      // Create task
+      const task = this.stateManager.createTask(taskId, request.message, {
+        mode: 'agentic',
+        context: request.context || [],
+        workspacePath: request.workspacePath
+      });
+
+      // Emit task start event
+      this.eventBus.emitEvent(EventTypes.AGENT_START, {
+        message: request.message,
+        contextFiles: request.context?.length || 0,
+        mode: 'agentic'
+      }, taskId);
+
+      this.logger.info(`Starting Agentic Mode execution for task ${taskId}`);
+
+      // Create agentic runner
+      const runner = new AgenticRunner({
+        apiKey: this.config.apiKey || process.env.ANTHROPIC_API_KEY,
+        model: this.config.model || 'claude-sonnet-4-5-20250929',
+        maxIterations: this.config.maxAgenticIterations || 25,
+        warningThreshold: this.config.agenticWarningThreshold || 20,
+        approvalTimeout: this.config.approvalTimeout || 300000,
+        logger: this.logger,
+        eventBus: this.eventBus,
+        tokenBudget: this.budgetManager,
+        errorHandler: this.errorHandler
+      });
+
+      // Build context for runner
+      const context = {
+        workspacePath: request.workspacePath,
+        contextFiles: request.context || [],
+        taskId,
+        logger: this.logger,
+        eventBus: this.eventBus
+      };
+
+      // Run agentic execution
+      const result = await runner.run(request.message, context);
+
+      // Mark task as complete or failed
+      if (result.success) {
+        this.stateManager.updateTask(taskId, {
+          status: TaskStatus.COMPLETE,
+          result: {
+            response: result.response,
+            iterations: result.iterations
+          },
+          metrics: {
+            tokensUsed: this.budgetManager.usedTokens,
+            iterations: result.iterations,
+            totalTime: Date.now() - new Date(task.timestamps.createdAt).getTime()
+          }
+        });
+
+        // Emit task complete event
+        this.eventBus.emitEvent(EventTypes.AGENT_COMPLETE, {
+          iterations: result.iterations,
+          tokensUsed: this.budgetManager.usedTokens
+        }, taskId);
+
+        this.logger.info(`Agentic Mode execution completed for task ${taskId}`);
+      } else {
+        this.stateManager.updateTask(taskId, {
+          status: TaskStatus.FAILED,
+          result: {
+            response: result.response,
+            iterations: result.iterations
+          }
+        });
+      }
+
+      return {
+        success: result.success,
+        taskId,
+        response: result.response,
+        iterations: result.iterations,
+        metrics: {
+          tokensUsed: this.budgetManager.usedTokens,
+          budgetRemaining: this.budgetManager.getRemaining(),
+          totalTime: Date.now() - new Date(task.timestamps.createdAt).getTime()
+        }
+      };
+
+    } catch (error) {
+      this.logger.error(`Agentic Mode execution failed for task ${taskId}:`, error);
+
+      // Update task as failed
+      this.stateManager.updateTask(taskId, {
+        status: TaskStatus.FAILED,
+        error: {
+          message: error.message,
+          type: error.name,
+          stack: error.stack
+        }
+      });
+
+      // Emit error event
+      this.eventBus.emitEvent(EventTypes.AGENT_ERROR, {
         error: error.message,
         type: error.name
       }, taskId);

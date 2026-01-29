@@ -21,10 +21,14 @@ const useChatStore = create((set, get) => ({
   // Agentic mode state
   agenticState: {
     isRunning: false,
+    currentIteration: 0,
+    maxIterations: 25,
     currentTool: null,
     pendingApproval: null,
-    executionHistory: [],
-    iteration: 0
+    toolExecutionHistory: [],
+    tokensUsed: 0,
+    tokenBudget: 100000,
+    approveAll: false // Auto-approve all tools if true
   },
 
   // Set AI mode
@@ -154,6 +158,113 @@ const useChatStore = create((set, get) => ({
       messages: [...messages, cancelMessage],
       pendingPlan: null
     });
+  },
+
+  // Agentic Mode Actions
+  startAgenticExecution: () => {
+    set({
+      agenticState: {
+        ...get().agenticState,
+        isRunning: true,
+        currentIteration: 0,
+        toolExecutionHistory: []
+      }
+    });
+  },
+
+  stopAgenticExecution: () => {
+    set({
+      agenticState: {
+        ...get().agenticState,
+        isRunning: false,
+        currentTool: null,
+        pendingApproval: null
+      }
+    });
+  },
+
+  updateAgenticIteration: (iteration) => {
+    set({
+      agenticState: {
+        ...get().agenticState,
+        currentIteration: iteration
+      }
+    });
+  },
+
+  updateTokenUsage: (tokensUsed) => {
+    set({
+      agenticState: {
+        ...get().agenticState,
+        tokensUsed
+      }
+    });
+  },
+
+  setCurrentTool: (tool) => {
+    set({
+      agenticState: {
+        ...get().agenticState,
+        currentTool: tool
+      }
+    });
+  },
+
+  addToolExecution: (toolExecution) => {
+    const { agenticState } = get();
+    set({
+      agenticState: {
+        ...agenticState,
+        toolExecutionHistory: [...agenticState.toolExecutionHistory, toolExecution]
+      }
+    });
+  },
+
+  requestToolApproval: (tool) => {
+    set({
+      agenticState: {
+        ...get().agenticState,
+        pendingApproval: tool
+      }
+    });
+  },
+
+  approveToolExecution: (modifiedParams = null, approveAll = false) => {
+    const { agenticState } = get();
+    if (agenticState.pendingApproval) {
+      // Send approval via IPC
+      window.electronAPI.agentic.approveToolExecution({
+        approved: true,
+        modifiedParams: modifiedParams || agenticState.pendingApproval.params,
+        approveAll
+      });
+
+      set({
+        agenticState: {
+          ...agenticState,
+          pendingApproval: null,
+          approveAll: approveAll || agenticState.approveAll
+        }
+      });
+    }
+  },
+
+  rejectToolExecution: (reason = 'User rejected') => {
+    const { agenticState } = get();
+    if (agenticState.pendingApproval) {
+      // Send rejection via IPC
+      window.electronAPI.agentic.rejectToolExecution({
+        approved: false,
+        reason
+      });
+
+      set({
+        agenticState: {
+          ...agenticState,
+          pendingApproval: null
+        }
+      });
+    }
   },
 
   // Context file management
