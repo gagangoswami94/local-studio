@@ -2949,20 +2949,20 @@ body {
   box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
 }
 
-.mode-btn.mode-orange {
-  border-color: rgba(255, 152, 0, 0.3);
+.mode-btn.mode-purple {
+  border-color: rgba(156, 39, 176, 0.3);
 }
 
-.mode-btn.mode-orange:hover {
-  border-color: rgba(255, 152, 0, 0.5);
-  background: rgba(255, 152, 0, 0.05);
+.mode-btn.mode-purple:hover {
+  border-color: rgba(156, 39, 176, 0.5);
+  background: rgba(156, 39, 176, 0.05);
 }
 
-.mode-btn.mode-orange.active {
-  border-color: #FF9800;
-  background: rgba(255, 152, 0, 0.15);
-  color: #FF9800;
-  box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.1);
+.mode-btn.mode-purple.active {
+  border-color: #9C27B0;
+  background: rgba(156, 39, 176, 0.15);
+  color: #9C27B0;
+  box-shadow: 0 0 0 3px rgba(156, 39, 176, 0.1);
 }
 
 .mode-btn.mode-green {
@@ -2997,9 +2997,9 @@ body {
   background: rgba(33, 150, 243, 0.08);
 }
 
-.mode-hint-orange {
-  color: #FFB74D;
-  background: rgba(255, 152, 0, 0.08);
+.mode-hint-purple {
+  color: #BA68C8;
+  background: rgba(156, 39, 176, 0.08);
 }
 
 .mode-hint-green {

@@ -133,8 +133,8 @@ const PlanResponse = ({ plan }) => {
 const Message = ({ message }) => {
   const isUser = message.role === 'user';
 
-  // Handle plan mode messages
-  if (message.mode === 'plan' && typeof message.content === 'object') {
+  // Handle bundle mode messages (plan display)
+  if (message.mode === 'bundle' && typeof message.content === 'object') {
     return (
       <div className="chat-message ai-message">
         <div className="message-avatar">🤖</div>
@@ -214,23 +214,26 @@ const ModeSelector = () => {
       label: 'Ask',
       color: 'blue',
       description: 'Get explanations, no code changes',
-      hint: 'Ask about your code, debug errors, get explanations'
+      hint: 'Ask about your code, debug errors, get explanations',
+      cost: null
     },
     {
-      id: 'plan',
-      icon: '📋',
-      label: 'Plan',
-      color: 'orange',
-      description: 'See what will change before applying',
-      hint: 'Describe changes, AI will show detailed plan'
-    },
-    {
-      id: 'act',
-      icon: '⚡',
-      label: 'Act',
+      id: 'bundle',
+      icon: '📦',
+      label: 'Bundle',
       color: 'green',
-      description: 'Generate and apply code changes',
-      hint: 'Generate code, apply changes to your project'
+      description: 'Generate complete changes, review once, apply atomically',
+      hint: 'Describe the feature you want to add, review all changes together',
+      cost: 'Low (~$0.05-0.20 per feature)'
+    },
+    {
+      id: 'agentic',
+      icon: '🤖',
+      label: 'Agentic',
+      color: 'purple',
+      description: 'Work step-by-step with full control over each action',
+      hint: 'AI works iteratively with approval at each step',
+      cost: 'Higher (~$0.50-5.00 per task)'
     }
   ];
 
@@ -253,6 +256,9 @@ const ModeSelector = () => {
       </div>
       <div className={`mode-hint mode-hint-${currentModeData.color}`}>
         {currentModeData.hint}
+        {currentModeData.cost && (
+          <span className="mode-cost"> • Cost: {currentModeData.cost}</span>
+        )}
       </div>
     </div>
   );
@@ -293,6 +299,20 @@ const ChatPanel = () => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
+    }
+  };
+
+  // Get placeholder based on current mode
+  const getPlaceholder = () => {
+    switch (currentMode) {
+      case 'ask':
+        return 'Ask about your code...';
+      case 'bundle':
+        return 'Describe the feature you want to add...';
+      case 'agentic':
+        return 'What would you like me to help you with step-by-step?';
+      default:
+        return 'Ask AI or describe what you want to build...';
     }
   };
 
@@ -374,7 +394,7 @@ const ChatPanel = () => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask AI or describe what you want to build..."
+            placeholder={getPlaceholder()}
             rows={1}
             disabled={isLoading}
           />

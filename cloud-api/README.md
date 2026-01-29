@@ -225,7 +225,7 @@ POST /api/plan
       "outputTokens": 300,
       "totalTokens": 450
     },
-    "model": "claude-3-5-sonnet-20241022",
+    "model": "claude-sonnet-4-5-20250929",
     "timestamp": "2026-01-27T09:00:00.000Z"
   }
 }
@@ -364,7 +364,7 @@ src/
 
 ## Notes
 
-- Default model: `claude-3-5-sonnet-20241022`
+- Default model: `claude-sonnet-4-5-20250929`
 - ASK mode: temp=0.7, max_tokens=4096
 - ACT mode: temp=0.3, max_tokens=8192 (more precise, more tokens)
 - Context limit: 20,000 tokens per request

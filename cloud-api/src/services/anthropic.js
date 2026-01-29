@@ -42,7 +42,7 @@ function getRetryDelay(attempt) {
  * Chat completion with Claude
  * @param {Array} messages - Array of {role: 'user'|'assistant', content: string}
  * @param {Object} options - Additional options
- * @param {string} options.model - Model to use (default: claude-3-5-sonnet)
+ * @param {string} options.model - Model to use (default: claude-sonnet-4-5-20250929)
  * @param {number} options.maxTokens - Max tokens to generate (default: 4096)
  * @param {number} options.temperature - Temperature 0-1 (default: 0.7)
  * @param {string} options.system - System prompt

@@ -75,7 +75,7 @@ const isRetryableError = (error) => {
 /**
  * Make API request with retry logic
  */
-const apiRequest = async (endpoint, options = {}, retries = MAX_RETRIES) => {
+const apiRequest = async (endpoint, options = {}, retries = MAX_RETRIES, timeout = DEFAULT_TIMEOUT) => {
   const apiUrl = getApiUrl();
   const apiKey = getApiKey();
   const url = `${apiUrl}${endpoint}`;
@@ -97,7 +97,7 @@ const apiRequest = async (endpoint, options = {}, retries = MAX_RETRIES) => {
       const response = await fetchWithTimeout(url, {
         ...options,
         headers
-      });
+      }, timeout);
 
       const data = await response.json();
 
@@ -206,20 +206,22 @@ export const ask = async (message, context = []) => {
 
 /**
  * PLAN Mode - Get implementation plan
+ * Uses longer timeout (60 seconds) since plan generation needs time to analyze
  */
-export const plan = async (message, context = []) => {
-  return await apiRequest('/chat', {
+export const plan = async (message, context = [], workspaceFiles = []) => {
+  return await apiRequest('/plan', {
     method: 'POST',
     body: JSON.stringify({
       message,
-      mode: 'plan',
-      context
+      context,
+      workspace_files: workspaceFiles
     })
-  });
+  }, MAX_RETRIES, 60000); // 60 second timeout for plan generation
 };
 
 /**
  * ACT Mode - Execute code changes
+ * Uses longer timeout (2 minutes) since code generation takes time
  */
 export const act = async (message, context = [], approvedPlan = null) => {
   return await apiRequest('/chat', {
@@ -230,7 +232,7 @@ export const act = async (message, context = [], approvedPlan = null) => {
       context,
       plan: approvedPlan
     })
-  });
+  }, MAX_RETRIES, 120000); // 2 minute timeout for code generation
 };
 
 /**

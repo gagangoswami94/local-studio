@@ -41,8 +41,11 @@ async function chatRoutes(fastify, options) {
             }
           },
           plan: {
-            type: 'object',
-            description: 'Approved plan for ACT mode'
+            anyOf: [
+              { type: 'object' },
+              { type: 'null' }
+            ],
+            description: 'Approved plan for ACT mode (optional)'
           }
         }
       }

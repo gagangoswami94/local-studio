@@ -24,7 +24,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
   workspace: {
     showOpenDialog: () => ipcRenderer.invoke('workspace:showOpenDialog'),
     open: (path) => ipcRenderer.invoke('workspace:open', path),
-    listFiles: (workspacePath) => ipcRenderer.invoke('workspace:listFiles', workspacePath)
+    listFiles: (workspacePath) => ipcRenderer.invoke('workspace:listFiles', workspacePath),
+    getFiles: async () => {
+      // Get current workspace path from localStorage
+      const workspacePath = localStorage.getItem('workspacePath');
+      if (!workspacePath) {
+        return []; // Return empty array if no workspace is open
+      }
+
+      // Call listFiles with the workspace path
+      const result = await ipcRenderer.invoke('workspace:listFiles', workspacePath);
+      if (!result.success) {
+        return [];
+      }
+
+      // Return just the relative paths as an array of strings
+      return result.data.map(file => file.relativePath);
+    }
   },
 
   // Terminal operations

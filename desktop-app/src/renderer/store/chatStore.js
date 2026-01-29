@@ -14,9 +14,18 @@ const useChatStore = create((set, get) => ({
   // State
   messages: [],
   isLoading: false,
-  currentMode: getInitialMode(), // 'ask' | 'plan' | 'act'
-  pendingPlan: null, // Store plan awaiting approval
+  currentMode: getInitialMode(), // 'ask' | 'bundle' | 'agentic'
+  pendingPlan: null, // Store plan awaiting approval (bundle mode)
   contextFiles: [], // Array of file paths included in context (max 5)
+
+  // Agentic mode state
+  agenticState: {
+    isRunning: false,
+    currentTool: null,
+    pendingApproval: null,
+    executionHistory: [],
+    iteration: 0
+  },
 
   // Set AI mode
   setMode: (mode) => {
@@ -29,18 +38,107 @@ const useChatStore = create((set, get) => ({
   },
 
   // Approve plan
-  approvePlan: (plan) => {
-    const { messages } = get();
+  approvePlan: async (plan) => {
+    const { messages, contextFiles } = get();
+
+    // Add approval message
     const approvalMessage = {
       id: Date.now().toString(),
       role: 'assistant',
-      content: `✅ **Plan Approved!**\n\nStarting implementation...\n\n*In a real implementation, this would execute the plan and apply all changes.*`,
+      content: `✅ **Plan Approved!**\n\nGenerating code changes...`,
       timestamp: new Date().toISOString()
     };
+
     set({
       messages: [...messages, approvalMessage],
+      isLoading: true,
       pendingPlan: null
     });
+
+    try {
+      // Load context file contents
+      const contextWithContent = await Promise.all(
+        contextFiles.map(async (filePath) => {
+          try {
+            const result = await window.electronAPI.fs.readFile(filePath);
+            if (result.success) {
+              return {
+                path: filePath,
+                content: result.data
+              };
+            }
+            return null;
+          } catch (error) {
+            console.error('Failed to load context file:', filePath, error);
+            return null;
+          }
+        })
+      );
+
+      const validContext = contextWithContent.filter(c => c !== null);
+
+      // Call act API with approved plan
+      const response = await api.act(
+        `Execute the approved plan: ${plan.title}`,
+        validContext,
+        plan.raw // Send the raw API plan data
+      );
+
+      const result = response.data.response;
+
+      // Format result as markdown
+      let resultMarkdown = `# ✅ Implementation Complete\n\n`;
+      resultMarkdown += `## ${result.title || 'Code Changes'}\n\n`;
+      resultMarkdown += `📝 **${result.filesCreated || 0} file(s) created**\n`;
+      resultMarkdown += `✏️  **${result.filesModified || 0} file(s) modified**\n`;
+      resultMarkdown += `🗑️  **${result.filesDeleted || 0} file(s) deleted**\n\n`;
+
+      if (result.summary) {
+        resultMarkdown += `## Summary\n${result.summary}\n\n`;
+      }
+
+      if (result.files && result.files.length > 0) {
+        resultMarkdown += `## Files Changed\n\n`;
+        result.files.forEach(file => {
+          resultMarkdown += `### ${file.path} (${file.action})\n\n`;
+          if (file.diff) {
+            resultMarkdown += '```diff\n' + file.diff + '\n```\n\n';
+          }
+        });
+      }
+
+      const codeResponse = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: resultMarkdown,
+        timestamp: new Date().toISOString(),
+        usage: response.data.usage,
+        model: response.data.model
+      };
+
+      set({
+        messages: [...get().messages, codeResponse],
+        isLoading: false
+      });
+
+    } catch (error) {
+      console.error('Failed to execute plan:', error);
+
+      const errorContent = error.userMessage || `❌ **Error Executing Plan**\n\n${error.message || 'Failed to generate code. Please try again.'}`;
+
+      const errorMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: errorContent,
+        error: true,
+        timestamp: new Date().toISOString()
+      };
+
+      set({
+        messages: [...get().messages, errorMessage],
+        isLoading: false
+      });
+    }
   },
 
   // Cancel plan
@@ -144,18 +242,44 @@ const useChatStore = create((set, get) => ({
         };
         set({ messages: [...get().messages, aiResponse], isLoading: false });
 
-      } else if (currentMode === 'plan') {
-        // Plan mode - call real API
-        const response = await api.plan(content, validContext);
-        const plan = response.data.response; // Extract plan from response
+      } else if (currentMode === 'bundle') {
+        // Bundle mode - get workspace files and call real API
+        const workspaceFiles = await window.electronAPI.workspace.getFiles();
+        const response = await api.plan(content, validContext, workspaceFiles);
+
+        // Transform API response to UI format
+        const apiPlan = response.data;
+        const plan = {
+          title: `Implementation Plan: ${content.substring(0, 50)}${content.length > 50 ? '...' : ''}`,
+          complexity: apiPlan.complexity,
+          filesChanged: apiPlan.files_to_change?.length || 0,
+          linesAdded: 0, // Will be calculated during execution
+          linesRemoved: 0,
+          estimatedTime: `${apiPlan.estimated_minutes || 30} min`,
+          steps: apiPlan.steps?.map((step, idx) => ({
+            id: idx + 1,
+            title: step.description,
+            changes: `${step.files?.length || 0} file(s) - ${step.type}`,
+            description: step.description,
+            files: step.files || [],
+            type: step.type
+          })) || [],
+          risks: apiPlan.risks || [],
+          dependencies: apiPlan.dependencies,
+          migrations: apiPlan.migrations,
+          files_to_change: apiPlan.files_to_change,
+          plan_id: apiPlan.plan_id,
+          raw: apiPlan // Keep raw API response for execution
+        };
+
         aiResponse = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: plan, // Store plan object directly
-          mode: 'plan',
+          content: plan, // Store transformed plan object
+          mode: 'bundle',
           timestamp: new Date().toISOString(),
-          usage: response.data.usage,
-          model: response.data.model
+          usage: apiPlan.usage,
+          model: apiPlan.model
         };
         set({
           messages: [...get().messages, aiResponse],
@@ -163,9 +287,9 @@ const useChatStore = create((set, get) => ({
           isLoading: false
         });
 
-      } else if (currentMode === 'act') {
-        // Act mode - call real API with approved plan if available
-        const { pendingPlan } = get();
+      } else if (currentMode === 'agentic') {
+        // Agentic mode - call real API with step-by-step execution
+        const { pendingPlan, agenticState } = get();
         const response = await api.act(content, validContext, pendingPlan);
         const result = response.data.response; // Extract result from response
 
@@ -188,7 +312,7 @@ const useChatStore = create((set, get) => ({
           id: (Date.now() + 1).toString(),
           role: 'assistant',
           content: resultMarkdown,
-          mode: 'act',
+          mode: 'agentic',
           timestamp: new Date().toISOString(),
           usage: response.data.usage,
           model: response.data.model
