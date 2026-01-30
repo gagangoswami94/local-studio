@@ -11,6 +11,7 @@
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
     "buffer": "^6.0.3",
+    "diff": "^8.0.3",
     "electron": "^28.3.3",
     "eslint": "^9.39.2",
     "fuse.js": "^7.1.0",
@@ -19,6 +20,7 @@
     "path-browserify": "^1.0.1",
     "process": "^0.11.10",
     "react": "^18.3.1",
+    "react-diff-view": "^3.3.2",
     "react-dom": "^18.3.1",
     "react-markdown": "^10.1.0",
     "react-syntax-highlighter": "^16.1.0",

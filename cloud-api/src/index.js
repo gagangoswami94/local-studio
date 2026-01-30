@@ -5,6 +5,7 @@ const jwt = require('@fastify/jwt');
 
 // Import routes
 const routes = require('./routes');
+const { setupWebSocketServer } = require('./websocket');
 
 /**
  * Create and configure Fastify server
@@ -34,6 +35,11 @@ async function createServer() {
 
   // Register API routes
   await server.register(routes, { prefix: '/api' });
+
+  // Setup WebSocket server for progress updates
+  server.addHook('onReady', () => {
+    setupWebSocketServer(server);
+  });
 
   // Global error handler
   server.setErrorHandler((error, request, reply) => {

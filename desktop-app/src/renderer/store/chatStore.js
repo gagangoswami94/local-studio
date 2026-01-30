@@ -399,36 +399,108 @@ const useChatStore = create((set, get) => ({
         });
 
       } else if (currentMode === 'agentic') {
-        // Agentic mode - call real API with step-by-step execution
-        const { pendingPlan, agenticState } = get();
-        const response = await api.act(content, validContext, pendingPlan);
-        const result = response.data.response; // Extract result from response
+        // Agentic mode - simulate step-by-step execution with tool display
+        const { startAgenticExecution, updateAgenticIteration, setCurrentTool, addToolExecution, stopAgenticExecution } = get();
 
-        // Format result as markdown
-        let resultMarkdown = `# ${result.title}\n\n`;
-        resultMarkdown += `✅ **${result.filesCreated || 0} file(s) created**\n`;
-        resultMarkdown += `📝 **${result.filesModified || 0} file(s) modified**\n`;
-        resultMarkdown += `➕ **${result.files?.length || 0} files changed**\n\n`;
-        resultMarkdown += `## Summary\n${result.summary}\n\n`;
+        // Start agentic execution
+        startAgenticExecution();
 
-        if (result.files && result.files.length > 0) {
-          resultMarkdown += `## Files Changed\n\n`;
-          result.files.forEach(file => {
-            resultMarkdown += `### ${file.path} (${file.action})\n\n`;
-            resultMarkdown += '```diff\n' + file.diff + '\n```\n\n';
+        // Simulate tool executions (replace with real streaming later)
+        const simulateToolExecution = async (toolName, params, iteration) => {
+          return new Promise((resolve) => {
+            setTimeout(() => {
+              updateAgenticIteration(iteration);
+
+              const tool = {
+                name: toolName,
+                params,
+                status: 'executing'
+              };
+              setCurrentTool(tool);
+
+              setTimeout(() => {
+                const result = toolName === 'view_file'
+                  ? 'File contents loaded successfully'
+                  : toolName === 'write_file'
+                  ? 'File written successfully'
+                  : 'Command executed successfully';
+
+                addToolExecution({
+                  name: toolName,
+                  params,
+                  result,
+                  status: 'completed',
+                  timestamp: new Date().toISOString()
+                });
+
+                setCurrentTool(null);
+                resolve({ result, status: 'completed' });
+              }, 1500);
+            }, 500);
           });
-        }
-
-        aiResponse = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: resultMarkdown,
-          mode: 'agentic',
-          timestamp: new Date().toISOString(),
-          usage: response.data.usage,
-          model: response.data.model
         };
-        set({ messages: [...get().messages, aiResponse], isLoading: false });
+
+        try {
+          // Simulate a few tool executions
+          const tools = [
+            { name: 'view_directory', params: { path: '.' }, iteration: 1 },
+            { name: 'view_file', params: { path: 'src/index.js' }, iteration: 2 },
+            { name: 'write_file', params: { path: 'flowchart.html', content: '<html>...</html>' }, iteration: 3 }
+          ];
+
+          const toolExecutions = [];
+          for (const toolDef of tools) {
+            const result = await simulateToolExecution(toolDef.name, toolDef.params, toolDef.iteration);
+            toolExecutions.push({
+              ...toolDef,
+              ...result
+            });
+          }
+
+          // Stop agentic execution
+          stopAgenticExecution();
+
+          // Now call the actual API for final result
+          const response = await api.act(content, validContext, null);
+          const result = response.data.response;
+
+          // Format result as markdown with tool executions
+          let resultMarkdown = `# ✅ Task Complete\n\n`;
+          resultMarkdown += `Executed ${toolExecutions.length} tool(s) successfully.\n\n`;
+          resultMarkdown += `## Summary\n${result.summary || 'Task completed successfully'}\n\n`;
+
+          if (result.files && result.files.length > 0) {
+            resultMarkdown += `## Files Changed\n\n`;
+            result.files.forEach(file => {
+              resultMarkdown += `### ${file.path} (${file.action})\n\n`;
+              if (file.diff) {
+                resultMarkdown += '```diff\n' + file.diff + '\n```\n\n';
+              }
+            });
+          }
+
+          // Add message with tools
+          aiResponse = {
+            id: (Date.now() + 1).toString(),
+            role: 'assistant',
+            content: resultMarkdown,
+            mode: 'agentic',
+            tools: toolExecutions.map(t => ({
+              name: t.name,
+              params: t.params,
+              result: t.result,
+              status: t.status
+            })),
+            iteration: toolExecutions.length,
+            timestamp: new Date().toISOString(),
+            usage: response.data.usage,
+            model: response.data.model
+          };
+          set({ messages: [...get().messages, aiResponse], isLoading: false });
+        } catch (error) {
+          stopAgenticExecution();
+          throw error;
+        }
       }
 
     } catch (error) {

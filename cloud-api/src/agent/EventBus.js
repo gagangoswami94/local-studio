@@ -24,6 +24,16 @@ const EventTypes = {
   CODE_GENERATING: 'code_generating',
   CODE_VALIDATING: 'code_validating',
 
+  // Validation checks
+  VALIDATION_CHECK_START: 'validation_check_start',
+  VALIDATION_CHECK_COMPLETE: 'validation_check_complete',
+  VALIDATION_SUMMARY: 'validation_summary',
+
+  // Approval and risk
+  APPROVAL_REQUIRED: 'approval_required',
+  APPROVAL_RECEIVED: 'approval_received',
+  PLAN_MODIFIED: 'plan_modified',
+
   // Tool execution (agentic mode)
   TOOL_START: 'tool_start',
   TOOL_PROGRESS: 'tool_progress',

@@ -9,6 +9,7 @@ import FileSelector from './FileSelector';
 import ToolMessage from './ToolMessage';
 import AgenticProgress from './AgenticProgress';
 import ToolApproval from './ToolApproval';
+import PlanReview from './PlanReview';
 
 const CodeBlock = ({ language, value }) => {
   const [copied, setCopied] = useState(false);
@@ -43,93 +44,77 @@ const CodeBlock = ({ language, value }) => {
 };
 
 const PlanResponse = ({ plan }) => {
-  const { approvePlan, cancelPlan } = useChatStore();
-  const [expandedSteps, setExpandedSteps] = useState({});
+  const { approvePlan, cancelPlan, sendMessage } = useChatStore();
+  const [showReview, setShowReview] = useState(false);
 
-  const toggleStep = (stepId) => {
-    setExpandedSteps(prev => ({
-      ...prev,
-      [stepId]: !prev[stepId]
-    }));
+  const handleModify = () => {
+    setShowReview(false);
+    // Focus on input and prepend modification instruction
+    const input = document.querySelector('.chat-input');
+    if (input) {
+      input.focus();
+      // User can type their modification
+    }
   };
 
   return (
-    <div className="plan-response">
-      <div className="plan-header">
-        <h3 className="plan-title">📋 {plan.title}</h3>
-        <div className="plan-summary">
-          <span className="plan-stat">
-            <strong>{plan.filesChanged}</strong> files
-          </span>
-          <span className="plan-stat">
-            <strong>+{plan.linesAdded}</strong> added
-          </span>
-          {plan.linesRemoved > 0 && (
+    <>
+      <div className="plan-response">
+        <div className="plan-header">
+          <h3 className="plan-title">📋 {plan.title}</h3>
+          <div className="plan-summary">
             <span className="plan-stat">
-              <strong>-{plan.linesRemoved}</strong> removed
+              <strong>{plan.filesChanged || plan.steps?.length || 0}</strong> files
             </span>
-          )}
-          <span className="plan-stat">
-            ⏱️ <strong>{plan.estimatedTime}</strong>
-          </span>
-        </div>
-      </div>
-
-      <div className="plan-steps">
-        {plan.steps.map((step) => (
-          <div key={step.id} className="plan-step">
-            <div className="plan-step-header" onClick={() => toggleStep(step.id)}>
-              <span className="plan-step-number">{step.id}</span>
-              <div className="plan-step-info">
-                <h4 className="plan-step-title">{step.title}</h4>
-                <p className="plan-step-changes">{step.changes}</p>
-              </div>
-              <span className="plan-step-arrow">
-                {expandedSteps[step.id] ? '▼' : '▶'}
+            {plan.complexity && (
+              <span className={`plan-stat complexity-${plan.complexity.toLowerCase()}`}>
+                {plan.complexity}
               </span>
-            </div>
-
-            {expandedSteps[step.id] && (
-              <div className="plan-step-details">
-                <p className="plan-step-description">{step.description}</p>
-                {step.files.length > 0 && (
-                  <div className="plan-step-files">
-                    <strong>Files:</strong>
-                    <ul>
-                      {step.files.map((file, idx) => (
-                        <li key={idx}>
-                          <code>{file}</code>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
             )}
+            <span className="plan-stat">
+              ⏱️ <strong>{plan.estimatedTime}</strong>
+            </span>
           </div>
-        ))}
-      </div>
-
-      {plan.risks && plan.risks.length > 0 && (
-        <div className="plan-risks">
-          <h4>⚠️ Potential Risks:</h4>
-          <ul>
-            {plan.risks.map((risk, idx) => (
-              <li key={idx}>{risk}</li>
-            ))}
-          </ul>
         </div>
-      )}
 
-      <div className="plan-actions">
-        <button className="plan-btn plan-btn-cancel" onClick={cancelPlan}>
-          ✕ Cancel
-        </button>
-        <button className="plan-btn plan-btn-approve" onClick={() => approvePlan(plan)}>
-          ✓ Approve & Execute
-        </button>
+        <div className="plan-quick-info">
+          <p>
+            A plan has been generated with <strong>{plan.steps?.length || 0} steps</strong>.
+            Click "Review Plan" to see full details including migrations, risks, and dependencies.
+          </p>
+        </div>
+
+        {plan.risks && plan.risks.length > 0 && (
+          <div className="plan-risks-preview">
+            <span className="risk-indicator">⚠️ {plan.risks.length} risk(s) identified</span>
+          </div>
+        )}
+
+        <div className="plan-actions">
+          <button className="plan-btn plan-btn-secondary" onClick={cancelPlan}>
+            ✕ Cancel
+          </button>
+          <button className="plan-btn plan-btn-primary" onClick={() => setShowReview(true)}>
+            📋 Review Plan
+          </button>
+        </div>
       </div>
-    </div>
+
+      {showReview && (
+        <PlanReview
+          plan={plan}
+          onApprove={(approvedPlan) => {
+            setShowReview(false);
+            approvePlan(approvedPlan);
+          }}
+          onCancel={() => {
+            setShowReview(false);
+            cancelPlan();
+          }}
+          onModify={handleModify}
+        />
+      )}
+    </>
   );
 };
 
